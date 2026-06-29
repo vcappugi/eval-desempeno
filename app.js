@@ -1752,6 +1752,20 @@ function renderReporteSubordinados() {
     filteredSubordinados = subordinados.filter(s => s.id === subIdNum);
   }
   
+  // Variables acumuladoras para el resumen del departamento
+  let totalTeamScore = 0;
+  let totalTeamCount = 0;
+  const teamCompSuma = {};
+  const teamCompCuenta = {};
+  const workerSummaries = [];
+  const statusCounts = {
+    'Excelente (Sobresaliente)': 0,
+    'Bueno (Cumple)': 0,
+    'Regular (Tutoría)': 0,
+    'Deficiente (Bajo)': 0,
+    'Sin Evaluaciones': 0
+  };
+
   let htmlContent = `
     <div class="report-header">
       <img src="images/BEL_LOGO.jpg" alt="BEL Logo" class="report-logo" onerror="this.src='https://placehold.co/100x60/2e7d32/ffffff?text=BEL'">
@@ -1831,7 +1845,30 @@ function renderReporteSubordinados() {
       else if (avgNum >= 3.75) nivelDesempeno = 'Bueno (Cumple)';
       else if (avgNum >= 2.75) nivelDesempeno = 'Regular (Tutoría)';
       else nivelDesempeno = 'Deficiente (Bajo)';
+      
+      // Sumar al acumulador general del equipo
+      totalTeamScore += totalSuma;
+      totalTeamCount += totalCuenta;
+      
+      // Sumar a los acumuladores por competencia del equipo
+      Object.keys(subCompSuma).forEach(claseId => {
+        const cId = parseInt(claseId);
+        if (!teamCompSuma[cId]) {
+          teamCompSuma[cId] = 0;
+          teamCompCuenta[cId] = 0;
+        }
+        teamCompSuma[cId] += subCompSuma[cId];
+        teamCompCuenta[cId] += subCompCuenta[cId];
+      });
     }
+    
+    statusCounts[nivelDesempeno]++;
+    workerSummaries.push({
+      s,
+      promedio: promedioGeneral,
+      nivel: nivelDesempeno,
+      evalCount: sortedDates.length
+    });
     
     htmlContent += `
       <article class="premium-card subordinate-report-card">
@@ -1971,6 +2008,120 @@ function renderReporteSubordinados() {
     `;
   });
   
+  // Calcular efectividad del equipo
+  const promedioEquipo = totalTeamCount > 0 ? (totalTeamScore / totalTeamCount) : 0;
+  const promedioEquipoLabel = totalTeamCount > 0 ? promedioEquipo.toFixed(1) : 'N/A';
+  const efectividadEquipo = promedioEquipo > 0 ? Math.round((promedioEquipo / 5) * 100) : 0;
+  
+  // Agregar la sección de resumen del departamento al final del reporte
+  htmlContent += `
+    <article class="premium-card subordinate-report-card summary-report-card" style="margin-top: 3rem; page-break-before: always; break-before: page;">
+      <div style="text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0; color: var(--primary); text-transform: uppercase;"><i class="fa-solid fa-chart-line"></i> Informe Resumen del Departamento</h3>
+        <p style="margin: 0.25rem 0 0 0; color: var(--muted-color); font-size: 0.9rem;">Consolidado de efectividad y desempeño global del equipo supervisado</p>
+      </div>
+      
+      <!-- Grid de KPIs del Equipo -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="kpi-card" style="padding: 1rem;">
+          <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase;">Personal Evaluado</h5>
+          <h3 style="font-size: 1.75rem; margin-top: 0.25rem; font-weight: 700; color: var(--primary);">${workerSummaries.filter(w => w.evalCount > 0).length} / ${filteredSubordinados.length}</h3>
+        </div>
+        <div class="kpi-card" style="padding: 1rem;">
+          <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase;">Promedio General</h5>
+          <h3 style="font-size: 1.75rem; margin-top: 0.25rem; font-weight: 700; color: var(--primary);">${promedioEquipoLabel !== 'N/A' ? `${promedioEquipoLabel} / 5` : '-'}</h3>
+        </div>
+        <div class="kpi-card" style="padding: 1rem; background-color: rgba(21, 128, 61, 0.1); border: 2px solid var(--primary);">
+          <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase; font-weight: 600;">Efectividad de Equipo</h5>
+          <h3 style="font-size: 1.75rem; margin-top: 0.25rem; font-weight: 800; color: var(--primary);">${efectividadEquipo}%</h3>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-top: 1.5rem;" class="subordinate-profile-grid">
+        <!-- Tabla de Resumen de Subordinados -->
+        <div>
+          <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-users"></i> Desempeño Individual del Personal</h4>
+          <div class="table-wrapper">
+            <table class="competency-summary-table">
+              <thead>
+                <tr>
+                  <th>Ficha</th>
+                  <th>Nombre y Apellido</th>
+                  <th style="text-align: center;">Evals</th>
+                  <th style="text-align: right;">Promedio</th>
+                  <th style="text-align: right;">Nivel Desempeño</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${workerSummaries.map(w => {
+                  const rating = w.promedio !== 'N/A' ? `${w.promedio} / 5` : '-';
+                  return `
+                    <tr>
+                      <td><strong>${w.s.ficha || 'N/A'}</strong></td>
+                      <td>${w.s.nombre}</td>
+                      <td style="text-align: center;">${w.evalCount}</td>
+                      <td style="text-align: right; font-weight: 600; color: var(--primary);">${rating}</td>
+                      <td style="text-align: right; font-size: 0.85rem; font-weight: 500;">${w.nivel}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Promedio de Competencias del Equipo y Distribución -->
+        <div>
+          <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-award"></i> Promedio por Competencia</h4>
+          <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+            ${classesCache.map(c => {
+              const prevSuma = teamCompSuma[c.id] || 0;
+              const prevCuenta = teamCompCuenta[c.id] || 0;
+              const promedio = prevCuenta > 0 ? (prevSuma / prevCuenta).toFixed(1) : null;
+              const pctBarra = promedio ? (parseFloat(promedio) / 5) * 100 : 0;
+              const promedioLabel = promedio ? `${promedio} / 5` : 'Sin datos';
+              return `
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.2rem;">
+                    <span style="color: var(--contrast);">${c.titulo}</span>
+                    <span style="color: var(--primary); font-weight: 600;">${promedioLabel}</span>
+                  </div>
+                  <div style="background-color: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden; width: 100%;">
+                    <div style="background-color: var(--primary); height: 100%; width: ${pctBarra}%; border-radius: 3px;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-circle-info"></i> Distribución de Desempeño</h4>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem;">
+              <span>Excelente (Sobresaliente)</span>
+              <strong style="color: var(--primary);">${statusCounts['Excelente (Sobresaliente)']}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem;">
+              <span>Bueno (Cumple)</span>
+              <strong style="color: var(--primary);">${statusCounts['Bueno (Cumple)']}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem;">
+              <span>Regular (Tutoría)</span>
+              <strong style="color: #eab308;">${statusCounts['Regular (Tutoría)']}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem;">
+              <span>Deficiente (Bajo)</span>
+              <strong style="color: #ef4444;">${statusCounts['Deficiente (Bajo)']}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-bottom: 0.25rem;">
+              <span>Sin Evaluaciones</span>
+              <strong style="color: var(--muted-color);">${statusCounts['Sin Evaluaciones']}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+
   printArea.innerHTML = htmlContent;
   
   // Renderizar los gráficos de cada subordinado
