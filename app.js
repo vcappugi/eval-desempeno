@@ -282,16 +282,20 @@ function switchView(viewName) {
   
   // Toggle active class on links
   document.getElementById('navEvaluaciones').classList.toggle('active', viewName === 'evaluaciones');
+  document.getElementById('navIndicadores')?.classList.toggle('active', viewName === 'indicadores');
   document.getElementById('navAdmin')?.classList.toggle('active', viewName === 'admin');
   
   // Show/Hide views
   document.getElementById('viewEvaluaciones').style.display = viewName === 'evaluaciones' ? 'block' : 'none';
+  document.getElementById('viewIndicadores').style.display = viewName === 'indicadores' ? 'block' : 'none';
   document.getElementById('viewAdmin').style.display = viewName === 'admin' ? 'block' : 'none';
   
   // Cargar datos de la vista correspondiente
   if (viewName === 'evaluaciones') {
     renderSubordinados();
     closeEvaluationForm();
+  } else if (viewName === 'indicadores') {
+    renderIndicadoresGenerales();
   } else if (viewName === 'admin' && currentUser.rol === 'admin') {
     switchAdminTab(activeAdminTab);
   }
@@ -1313,5 +1317,126 @@ async function toggleEvaluationStatus(trabajadorId, fecha, closeStatus) {
     renderCierreEvaluaciones();
   } catch (err) {
     handleRlsError(err);
+  }
+}
+
+function renderIndicadoresGenerales() {
+  // 1. Total Trabajadores
+  const totalTrabajadores = workersCache.length;
+  document.getElementById('indTotalTrabajadores').textContent = totalTrabajadores;
+  
+  // 2. Agrupar evaluaciones por (trabajador_id, fecha)
+  const groupedEvals = {};
+  let totalAspectosEvaluados = 0;
+  let sumaCalificaciones = 0;
+  let cuentaCalificaciones = 0;
+  let evalsAbiertas = 0;
+  let evalsCerradas = 0;
+  const evaluadosSet = new Set();
+  
+  // Para promedios por competencia
+  const competenciaSuma = {};
+  const competenciaCuenta = {};
+  
+  evaluationsCache.forEach(ev => {
+    try {
+      const parsed = JSON.parse(ev.evaluacion);
+      const trabajadorId = parsed.trabajador_id;
+      const valor = parsed.valor;
+      const key = `${trabajadorId}_${ev.fecha}`;
+      
+      evaluadosSet.add(trabajadorId);
+      totalAspectosEvaluados++;
+      
+      // Agrupar
+      if (!groupedEvals[key]) {
+        groupedEvals[key] = {
+          trabajadorId: trabajadorId,
+          fecha: ev.fecha,
+          estado: ev.estado
+        };
+      } else if (ev.estado === true) {
+        groupedEvals[key].estado = true;
+      }
+      
+      // Si el aspecto es de tipo numérico (rango1,5), calculamos promedios
+      const aspecto = aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+      if (aspecto && aspecto.tipo === 'rango1,5') {
+        const valNum = parseFloat(valor);
+        if (!isNaN(valNum)) {
+          sumaCalificaciones += valNum;
+          cuentaCalificaciones++;
+          
+          // Agrupar por competencia (clase_id)
+          const claseId = ev.clase_id;
+          if (claseId) {
+            if (!competenciaSuma[claseId]) {
+              competenciaSuma[claseId] = 0;
+              competenciaCuenta[claseId] = 0;
+            }
+            competenciaSuma[claseId] += valNum;
+            competenciaCuenta[claseId]++;
+          }
+        }
+      }
+    } catch(e) {
+      // Ignorar filas inválidas
+    }
+  });
+  
+  // Contar abiertas y cerradas grupales
+  Object.values(groupedEvals).forEach(g => {
+    if (g.estado) {
+      evalsCerradas++;
+    } else {
+      evalsAbiertas++;
+    }
+  });
+  
+  const totalEvaluacionesHechas = Object.keys(groupedEvals).length;
+  document.getElementById('indTotalEvaluaciones').textContent = totalEvaluacionesHechas;
+  
+  // 3. Calificación Promedio General
+  const promedioGeneral = cuentaCalificaciones > 0 ? (sumaCalificaciones / cuentaCalificaciones).toFixed(1) : '0.0';
+  document.getElementById('indPromedioGeneral').textContent = `${promedioGeneral} / 5`;
+  
+  // 4. Tasa de Participación (% de personal evaluado)
+  const pctEvaluados = totalTrabajadores > 0 ? Math.round((evaluadosSet.size / totalTrabajadores) * 100) : 0;
+  document.getElementById('indPorcentajeEvaluados').textContent = `${pctEvaluados}%`;
+  
+  // 5. Estado de las Evaluaciones
+  document.getElementById('indEvalsAbiertas').textContent = evalsAbiertas;
+  document.getElementById('indEvalsCerradas').textContent = evalsCerradas;
+  document.getElementById('indTotalAspectosEvaluados').textContent = totalAspectosEvaluados;
+  
+  // 6. Renderizar Competencias List
+  const compContainer = document.getElementById('indCompetenciasList');
+  if (compContainer) {
+    compContainer.innerHTML = '';
+    
+    if (classesCache.length === 0) {
+      compContainer.innerHTML = '<p style="text-align: center; color: var(--muted-color); font-size: 0.875rem;">No hay competencias registradas.</p>';
+    } else {
+      classesCache.forEach(c => {
+        const suma = competenciaSuma[c.id] || 0;
+        const cuenta = competenciaCuenta[c.id] || 0;
+        const promedio = cuenta > 0 ? (suma / cuenta).toFixed(1) : null;
+        
+        const pctBarra = promedio ? (parseFloat(promedio) / 5) * 100 : 0;
+        const promedioLabel = promedio ? `${promedio} / 5` : 'Sin calificaciones';
+        
+        compContainer.innerHTML += `
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem;">
+              <span style="color: var(--contrast);">${c.titulo}</span>
+              <span style="color: var(--primary); font-weight: 600;">${promedioLabel}</span>
+            </div>
+            <div style="background-color: var(--border-color); height: 8px; border-radius: 4px; overflow: hidden; width: 100%;">
+              <div style="background-color: var(--primary); height: 100%; width: ${pctBarra}%; border-radius: 4px; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
   }
 }
