@@ -533,3 +533,238 @@ dialog article {
 .theme-toggle:hover {
   background: var(--primary-focus);
 }
+
+/* REPORTE DE SUBORDINADOS */
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-bottom: 3px double var(--primary);
+  margin-bottom: 2rem;
+  background-color: rgba(21, 128, 61, 0.03);
+  border-radius: 8px;
+}
+
+.report-logo {
+  height: 65px;
+  width: auto;
+  border-radius: 6px;
+}
+
+.report-header-text {
+  flex-grow: 1;
+}
+
+.report-header-text h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.report-header-text p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: var(--muted-color);
+}
+
+.subordinate-report-card {
+  margin-bottom: 3rem;
+  page-break-after: always;
+  break-after: page;
+}
+
+.subordinate-report-card:last-child {
+  page-break-after: avoid;
+  break-after: avoid;
+  margin-bottom: 0;
+}
+
+.subordinate-profile-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .subordinate-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subordinate-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.subordinate-meta div {
+  font-size: 0.9rem;
+}
+
+.subordinate-meta strong {
+  color: var(--contrast);
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.kpi-card {
+  background: rgba(21, 128, 61, 0.05);
+  border: 1px solid rgba(21, 128, 61, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.kpi-card h5 {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-card h3 {
+  margin: 0.25rem 0 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.competency-summary-table th, 
+.competency-summary-table td {
+  padding: 8px 12px;
+}
+
+.evaluation-detail-section {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.5rem;
+}
+
+.evaluation-date-block {
+  margin-bottom: 1.5rem;
+}
+
+.evaluation-date-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* PRINT MEDIA STYLES */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .main-header,
+  .sidebar,
+  .sidebar-overlay,
+  .app-footer,
+  #toastContainer,
+  .no-print,
+  .menu-toggle {
+    display: none !important;
+  }
+
+  .app-container {
+    margin-top: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .premium-card {
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+  
+  .premium-card:hover {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .report-header {
+    background: #ffffff !important;
+    border-bottom: 3px double #000000 !important;
+    padding: 1rem 0 !important;
+    margin-bottom: 1.5rem !important;
+    border-radius: 0 !important;
+  }
+
+  .report-header h3 {
+    color: #000000 !important;
+  }
+
+  .kpi-card {
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .kpi-card h3 {
+    color: #000000 !important;
+  }
+
+  .subordinate-report-card {
+    page-break-after: always !important;
+    break-after: page !important;
+    border: none !important;
+    padding-bottom: 2rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  .subordinate-report-card:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  table th, table td {
+    border: 1px solid #cbd5e1 !important;
+    color: #000000 !important;
+    font-size: 9.5pt !important;
+    padding: 6px 8px !important;
+  }
+
+  table th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+
+  .evaluation-date-title {
+    color: #000000 !important;
+    border-bottom: 1px solid #000000 !important;
+  }
+  
+  canvas {
+    max-width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+}
+

@@ -252,10 +252,28 @@ function showLoginView() {
 // Cargar catálogos en caché
 async function loadCaches() {
   try {
-    // 1. Trabajadores
-    const workersRes = await supabaseClient.from('trabajador').select('*').order('nombre');
-    if (workersRes.error) throw workersRes.error;
-    workersCache = workersRes.data || [];
+    // 1. Trabajadores - cargar todos paginando desde la BD para evitar el límite de 1000 de Supabase
+    let allWorkers = [];
+    let from = 0;
+    let to = 999;
+    let hasMore = true;
+    while (hasMore) {
+      const workersRes = await supabaseClient
+        .from('trabajador')
+        .select('*')
+        .order('nombre')
+        .range(from, to);
+      if (workersRes.error) throw workersRes.error;
+      const data = workersRes.data || [];
+      allWorkers = allWorkers.concat(data);
+      if (data.length < 1000) {
+        hasMore = false;
+      } else {
+        from += 1000;
+        to += 1000;
+      }
+    }
+    workersCache = allWorkers;
     
     // 2. Competencias
     const classesRes = await supabaseClient.from('clase').select('*').order('orden');
@@ -295,11 +313,13 @@ function switchView(viewName) {
   // Toggle active class on links
   document.getElementById('navEvaluaciones').classList.toggle('active', viewName === 'evaluaciones');
   document.getElementById('navIndicadores')?.classList.toggle('active', viewName === 'indicadores');
+  document.getElementById('navReporteSubordinados')?.classList.toggle('active', viewName === 'reporteSubordinados');
   document.getElementById('navAdmin')?.classList.toggle('active', viewName === 'admin');
   
   // Show/Hide views
   document.getElementById('viewEvaluaciones').style.display = viewName === 'evaluaciones' ? 'block' : 'none';
   document.getElementById('viewIndicadores').style.display = viewName === 'indicadores' ? 'block' : 'none';
+  document.getElementById('viewReporteSubordinados').style.display = viewName === 'reporteSubordinados' ? 'block' : 'none';
   document.getElementById('viewAdmin').style.display = viewName === 'admin' ? 'block' : 'none';
   
   // Cargar datos de la vista correspondiente
@@ -308,6 +328,9 @@ function switchView(viewName) {
     closeEvaluationForm();
   } else if (viewName === 'indicadores') {
     renderIndicadoresGenerales();
+  } else if (viewName === 'reporteSubordinados') {
+    initReporteSubordinadosFilters();
+    renderReporteSubordinados();
   } else if (viewName === 'admin' && currentUser.rol === 'admin') {
     switchAdminTab(activeAdminTab);
   }
@@ -390,103 +413,114 @@ function closeModal(modalId) {
 
 // ================= CRUD: TRABAJADORES =================
 
-function getFilteredWorkers() {
-  if (!workersSearchQuery) return workersCache;
-  return workersCache.filter(w => {
-    const cedulaMatch = (w.cedula || '').toLowerCase().includes(workersSearchQuery);
-    const nombreMatch = (w.nombre || '').toLowerCase().includes(workersSearchQuery);
-    const usuarioMatch = (w.usuario || '').toLowerCase().includes(workersSearchQuery);
-    return cedulaMatch || nombreMatch || usuarioMatch;
-  });
-}
-
-function renderTrabajadoresCrud() {
+async function renderTrabajadoresCrud() {
   const tbody = document.getElementById('trabajadoresTableBody');
   if (!tbody) return;
   
-  tbody.innerHTML = '';
-  
-  const filtered = getFilteredWorkers();
-  const totalWorkers = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalWorkers / workersPerPage));
-  
-  // Ajustar página actual si excede el total por eliminaciones o búsquedas
-  if (workersCurrentPage > totalPages) {
-    workersCurrentPage = totalPages;
-  }
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando trabajadores...</td></tr>';
   
   const startIndex = (workersCurrentPage - 1) * workersPerPage;
-  const endIndex = Math.min(startIndex + workersPerPage, totalWorkers);
-  const paginatedWorkers = filtered.slice(startIndex, endIndex);
+  const endIndex = startIndex + workersPerPage - 1;
   
-  // Actualizar controles de interfaz de paginación
-  const rangeLabel = document.getElementById('workersShowingRange');
-  const totalLabel = document.getElementById('workersTotalCount');
-  const curPageLabel = document.getElementById('workersCurrentPageLabel');
-  const totPagesLabel = document.getElementById('workersTotalPagesLabel');
-  const prevBtn = document.getElementById('btnPrevWorkersPage');
-  const nextBtn = document.getElementById('btnNextWorkersPage');
-  
-  if (rangeLabel) rangeLabel.textContent = totalWorkers === 0 ? '0' : `${startIndex + 1}-${endIndex}`;
-  if (totalLabel) totalLabel.textContent = totalWorkers;
-  if (curPageLabel) curPageLabel.textContent = workersCurrentPage;
-  if (totPagesLabel) totPagesLabel.textContent = totalPages;
-  
-  if (prevBtn) prevBtn.disabled = workersCurrentPage === 1;
-  if (nextBtn) nextBtn.disabled = workersCurrentPage === totalPages;
-  
-  // Mostrar u ocultar el contenedor de paginación
-  const paginationContainer = document.getElementById('workersPaginationContainer');
-  if (paginationContainer) {
-    paginationContainer.style.display = totalWorkers === 0 ? 'none' : 'flex';
+  try {
+    let query = supabaseClient
+      .from('trabajador')
+      .select('*', { count: 'exact' });
+      
+    if (workersSearchQuery) {
+      query = query.or(`cedula.ilike.%${workersSearchQuery}%,nombre.ilike.%${workersSearchQuery}%,usuario.ilike.%${workersSearchQuery}%`);
+    }
+    
+    const { data: paginatedWorkers, count, error } = await query
+      .order('nombre')
+      .range(startIndex, endIndex);
+      
+    if (error) throw error;
+    
+    const totalWorkers = count || 0;
+    const totalPages = Math.max(1, Math.ceil(totalWorkers / workersPerPage));
+    
+    // Ajustar página actual si excede el total
+    if (workersCurrentPage > totalPages) {
+      workersCurrentPage = totalPages;
+      renderTrabajadoresCrud();
+      return;
+    }
+    
+    tbody.innerHTML = '';
+    
+    // Actualizar controles de interfaz de paginación
+    const rangeLabel = document.getElementById('workersShowingRange');
+    const totalLabel = document.getElementById('workersTotalCount');
+    const curPageLabel = document.getElementById('workersCurrentPageLabel');
+    const totPagesLabel = document.getElementById('workersTotalPagesLabel');
+    const prevBtn = document.getElementById('btnPrevWorkersPage');
+    const nextBtn = document.getElementById('btnNextWorkersPage');
+    
+    const calculatedEndIndex = Math.min(startIndex + workersPerPage, totalWorkers);
+    if (rangeLabel) rangeLabel.textContent = totalWorkers === 0 ? '0' : `${startIndex + 1}-${calculatedEndIndex}`;
+    if (totalLabel) totalLabel.textContent = totalWorkers;
+    if (curPageLabel) curPageLabel.textContent = workersCurrentPage;
+    if (totPagesLabel) totPagesLabel.textContent = totalPages;
+    
+    if (prevBtn) prevBtn.disabled = workersCurrentPage === 1;
+    if (nextBtn) nextBtn.disabled = workersCurrentPage === totalPages;
+    
+    // Mostrar u ocultar el contenedor de paginación
+    const paginationContainer = document.getElementById('workersPaginationContainer');
+    if (paginationContainer) {
+      paginationContainer.style.display = totalWorkers === 0 ? 'none' : 'flex';
+    }
+    
+    if (totalWorkers === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No se encontraron trabajadores que coincidan con la búsqueda.</td></tr>';
+      return;
+    }
+    
+    let html = '';
+    paginatedWorkers.forEach(w => {
+      const createdDate = w.created_at ? new Date(w.created_at).toLocaleDateString() : 'N/A';
+      html += `
+        <tr>
+          <td><strong>${w.ficha || 'N/A'}</strong></td>
+          <td>${w.cedula}</td>
+          <td>${w.nombre}</td>
+          <td>${w.empresa}</td>
+          <td>${w.departamento}</td>
+          <td>${w.cargo}</td>
+          <td><mark style="background-color: ${w.rol === 'admin' ? '#dcfce7' : '#f3f4f6'}; color: ${w.rol === 'admin' ? '#15803d' : '#374151'}">${w.rol}</mark></td>
+          <td>${createdDate}</td>
+          <td style="text-align: right; white-space: nowrap;">
+            <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editTrabajador(${w.id})">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="outline contrast" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="deleteTrabajador(${w.id})">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+  } catch (err) {
+    console.error("Error al renderizar trabajadores en admin:", err);
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--form-element-invalid-border-color);">Error al cargar los trabajadores del servidor.</td></tr>';
+    showToast("Error al cargar los trabajadores.", "error");
   }
-  
-  if (totalWorkers === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No se encontraron trabajadores que coincidan con la búsqueda.</td></tr>';
-    return;
-  }
-  
-  let html = '';
-  paginatedWorkers.forEach(w => {
-    const createdDate = w.created_at ? new Date(w.created_at).toLocaleDateString() : 'N/A';
-    html += `
-      <tr>
-        <td><strong>${w.ficha || 'N/A'}</strong></td>
-        <td>${w.cedula}</td>
-        <td>${w.nombre}</td>
-        <td>${w.empresa}</td>
-        <td>${w.departamento}</td>
-        <td>${w.cargo}</td>
-        <td><mark style="background-color: ${w.rol === 'admin' ? '#dcfce7' : '#f3f4f6'}; color: ${w.rol === 'admin' ? '#15803d' : '#374151'}">${w.rol}</mark></td>
-        <td>${createdDate}</td>
-        <td style="text-align: right; white-space: nowrap;">
-          <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editTrabajador(${w.id})">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-          <button class="outline contrast" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="deleteTrabajador(${w.id})">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-  });
-  tbody.innerHTML = html;
 }
 
-function changeWorkersPage(direction) {
-  const filtered = getFilteredWorkers();
-  const totalPages = Math.ceil(filtered.length / workersPerPage);
+async function changeWorkersPage(direction) {
   const newPage = workersCurrentPage + direction;
-  if (newPage >= 1 && newPage <= totalPages) {
+  if (newPage >= 1) {
     workersCurrentPage = newPage;
-    renderTrabajadoresCrud();
+    await renderTrabajadoresCrud();
   }
 }
 
-function handleWorkerSearch(query) {
+async function handleWorkerSearch(query) {
   workersSearchQuery = query.toLowerCase().trim();
-  workersCurrentPage = 1; // Reiniciar a la primera página al escribir
-  renderTrabajadoresCrud();
+  workersCurrentPage = 1; // Reiniciar a la primera página al buscar
+  await renderTrabajadoresCrud();
 }
 
 function openTrabajadorModal() {
@@ -574,7 +608,7 @@ async function saveTrabajador(event) {
     
     closeModal('trabajadorModal');
     await loadCaches();
-    renderTrabajadoresCrud();
+    await renderTrabajadoresCrud();
   } catch (err) {
     handleRlsError(err);
   }
@@ -598,7 +632,7 @@ async function deleteTrabajador(id) {
     
     showToast("Trabajador eliminado correctamente.");
     await loadCaches();
-    renderTrabajadoresCrud();
+    await renderTrabajadoresCrud();
   } catch (err) {
     handleRlsError(err);
   }
@@ -1670,4 +1704,394 @@ function showWorkerChartModal(workerId) {
   });
   
   openModal('workerChartModal');
+}
+
+// ================= INFORME INDIVIDUAL DE SUBORDINADOS (REPORTE & IMPRESIÓN) =================
+
+function initReporteSubordinadosFilters() {
+  const select = document.getElementById('repFiltroSubordinado');
+  if (!select) return;
+  
+  const currentVal = select.value || 'todos';
+  
+  const subordinados = workersCache.filter(w => w.supervisor_id === currentUser.id);
+  
+  let html = '<option value="todos">Todos los subordinados</option>';
+  subordinados.forEach(s => {
+    html += `<option value="${s.id}">${s.nombre} (Ficha: ${s.ficha || 'N/A'})</option>`;
+  });
+  
+  select.innerHTML = html;
+  select.value = currentVal;
+}
+
+function renderReporteSubordinados() {
+  const printArea = document.getElementById('reporteSubordinadosPrintArea');
+  if (!printArea) return;
+  
+  const subordinados = workersCache.filter(w => w.supervisor_id === currentUser.id);
+  
+  if (subordinados.length === 0) {
+    printArea.innerHTML = `
+      <div class="premium-card" style="text-align: center; padding: 3rem;">
+        <i class="fa-solid fa-users-slash text-primary" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        <h4 style="margin: 0 0 0.5rem 0;">No posee subordinados asignados</h4>
+        <p style="color: var(--muted-color); margin: 0;">Usted no tiene trabajadores registrados bajo su supervisión directa en el sistema.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const selectedSubId = document.getElementById('repFiltroSubordinado')?.value || 'todos';
+  const dateDesde = document.getElementById('repFiltroFechaDesde')?.value || '';
+  const dateHasta = document.getElementById('repFiltroFechaHasta')?.value || '';
+  
+  let filteredSubordinados = subordinados;
+  if (selectedSubId !== 'todos') {
+    const subIdNum = parseInt(selectedSubId);
+    filteredSubordinados = subordinados.filter(s => s.id === subIdNum);
+  }
+  
+  let htmlContent = `
+    <div class="report-header">
+      <img src="images/BEL_LOGO.jpg" alt="BEL Logo" class="report-logo" onerror="this.src='https://placehold.co/100x60/2e7d32/ffffff?text=BEL'">
+      <div class="report-header-text">
+        <h3>Corporación BEL</h3>
+        <p><strong>Informe de Indicadores Individuales de Desempeño</strong></p>
+        <p style="font-size: 0.8rem; margin-top: 0.1rem; color: var(--muted-color);">Supervisor: ${currentUser.nombre} | Fecha de Emisión: ${new Date().toLocaleDateString()}</p>
+      </div>
+    </div>
+  `;
+  
+  filteredSubordinados.forEach(s => {
+    // Buscar todas las evaluaciones de este subordinado
+    const workerEvals = evaluationsCache.filter(ev => {
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && parsed.trabajador_id === s.id;
+      } catch(e) { return false; }
+    });
+    
+    let finalEvals = workerEvals;
+    if (dateDesde) {
+      finalEvals = finalEvals.filter(ev => ev.fecha >= dateDesde);
+    }
+    if (dateHasta) {
+      finalEvals = finalEvals.filter(ev => ev.fecha <= dateHasta);
+    }
+    
+    // Agrupar evaluaciones por fecha
+    const evalGroups = {};
+    finalEvals.forEach(ev => {
+      const key = ev.fecha;
+      if (!evalGroups[key]) {
+        evalGroups[key] = {
+          fecha: ev.fecha,
+          estado: ev.estado,
+          rows: []
+        };
+      }
+      evalGroups[key].rows.push(ev);
+    });
+    const sortedDates = Object.keys(evalGroups).sort((a, b) => new Date(b) - new Date(a));
+    
+    // Calcular promedio general e individuales
+    let totalSuma = 0;
+    let totalCuenta = 0;
+    const subCompSuma = {};
+    const subCompCuenta = {};
+    
+    finalEvals.forEach(ev => {
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        if (!parsed) return;
+        const valor = parseFloat(parsed.valor);
+        const aspecto = aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+        if (aspecto && aspecto.tipo === 'rango1,5' && !isNaN(valor)) {
+          totalSuma += valor;
+          totalCuenta++;
+          
+          const claseId = ev.clase_id;
+          if (!subCompSuma[claseId]) {
+            subCompSuma[claseId] = 0;
+            subCompCuenta[claseId] = 0;
+          }
+          subCompSuma[claseId] += valor;
+          subCompCuenta[claseId]++;
+        }
+      } catch(e) {}
+    });
+    
+    const promedioGeneral = totalCuenta > 0 ? (totalSuma / totalCuenta).toFixed(1) : 'N/A';
+    
+    let nivelDesempeno = 'Sin Evaluaciones';
+    if (promedioGeneral !== 'N/A') {
+      const avgNum = parseFloat(promedioGeneral);
+      if (avgNum >= 4.5) nivelDesempeno = 'Excelente (Sobresaliente)';
+      else if (avgNum >= 3.75) nivelDesempeno = 'Bueno (Cumple)';
+      else if (avgNum >= 2.75) nivelDesempeno = 'Regular (Tutoría)';
+      else nivelDesempeno = 'Deficiente (Bajo)';
+    }
+    
+    htmlContent += `
+      <article class="premium-card subordinate-report-card">
+        <div class="subordinate-profile-grid">
+          <div>
+            <h3 style="margin: 0; color: var(--primary);"><i class="fa-solid fa-user-tie"></i> ${s.nombre}</h3>
+            <p style="margin: 0.25rem 0 1rem 0; color: var(--muted-color); font-size: 0.9rem;">Ficha: <strong>${s.ficha || 'N/A'}</strong></p>
+            
+            <div class="subordinate-meta">
+              <div>Cédula: <strong>${s.cedula}</strong></div>
+              <div>Empresa: <strong>${s.empresa}</strong></div>
+              <div>Cargo: <strong>${s.cargo}</strong></div>
+              <div>Departamento: <strong>${s.departamento}</strong></div>
+            </div>
+          </div>
+          
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <h5>Evaluaciones</h5>
+              <h3>${sortedDates.length}</h3>
+            </div>
+            <div class="kpi-card">
+              <h5>Promedio</h5>
+              <h3>${promedioGeneral !== 'N/A' ? `${promedioGeneral} / 5` : '-'}</h3>
+            </div>
+            <div class="kpi-card">
+              <h5>Desempeño</h5>
+              <h3 style="font-size: 0.8rem; padding-top: 0.25rem; white-space: nowrap;">${nivelDesempeno}</h3>
+            </div>
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; margin-top: 1.5rem; align-items: start;" class="subordinate-profile-grid">
+          <!-- Tabla Resumen -->
+          <div>
+            <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-list-ol"></i> Promedio por Competencia</h4>
+            <div class="table-wrapper">
+              <table class="competency-summary-table">
+                <thead>
+                  <tr>
+                    <th>Competencia</th>
+                    <th style="text-align: right;">Promedio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${classesCache.map(c => {
+                    const suma = subCompSuma[c.id] || 0;
+                    const cuenta = subCompCuenta[c.id] || 0;
+                    const promedio = cuenta > 0 ? (suma / cuenta).toFixed(1) : '-';
+                    return `
+                      <tr>
+                        <td><strong>${c.titulo}</strong></td>
+                        <td style="text-align: right; font-weight: 600; color: var(--primary);">${promedio}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Gráfico -->
+          <div style="text-align: center;">
+            <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-chart-simple"></i> Gráfico de Desempeño</h4>
+            <div style="position: relative; width: 100%; height: 220px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.01); border-radius: 8px; border: 1px solid var(--border-color); padding: 0.5rem;">
+              <canvas id="repChart_${s.id}" style="width: 100%; height: 100%;"></canvas>
+              ${sortedDates.length === 0 ? `<div style="position: absolute; color: var(--muted-color); font-size: 0.9rem;"><i class="fa-solid fa-folder-open" style="display:block; font-size:1.5rem; margin-bottom:0.25rem;"></i>Sin evaluaciones</div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalle de Evaluaciones -->
+        ${sortedDates.length > 0 ? `
+          <div class="evaluation-detail-section">
+            <h4 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-clock-rotate-left"></i> Historial de Evaluaciones</h4>
+            
+            ${sortedDates.map(fecha => {
+              const group = evalGroups[fecha];
+              const statusText = group.estado ? 'Cerrada' : 'Abierta';
+              return `
+                <div class="evaluation-date-block">
+                  <div class="evaluation-date-title" style="display: flex; justify-content: space-between; font-size:0.95rem;">
+                    <span>Evaluación realizada el ${new Date(fecha).toLocaleDateString()}</span>
+                    <small style="font-weight: normal; font-size: 0.8rem; text-transform: uppercase;">Estado: ${statusText}</small>
+                  </div>
+                  
+                  <div class="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th style="width: 30%;">Competencia</th>
+                          <th style="width: 50%;">Aspecto Evaluado</th>
+                          <th style="width: 20%; text-align: right;">Respuesta / Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${group.rows.map(row => {
+                          const comp = classesCache.find(c => c.id === row.clase_id);
+                          const compLabel = comp ? comp.titulo : 'N/A';
+                          
+                          const aspect = aspectsCache.find(a => a.id === row.item_evaluacion_id);
+                          const aspectLabel = aspect ? aspect.descripcion : 'N/A';
+                          
+                          let ratingVal = 'N/A';
+                          try {
+                            const parsed = safeParseJSON(row.evaluacion);
+                            if (parsed) {
+                              ratingVal = parsed.valor;
+                              if (aspect && aspect.tipo === 'si/no') {
+                                ratingVal = ratingVal.toUpperCase();
+                              }
+                            }
+                          } catch(e) {}
+                          
+                          return `
+                            <tr>
+                              <td style="font-size: 0.85rem;"><strong>${compLabel}</strong></td>
+                              <td style="font-size: 0.85rem; text-align: justify;">${aspectLabel}</td>
+                              <td style="text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--contrast);">${ratingVal}</td>
+                            </tr>
+                          `;
+                        }).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : `
+          <div style="text-align: center; padding: 2rem; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 1.5rem; color: var(--muted-color);">
+            <i class="fa-solid fa-folder-open" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; color: var(--primary);"></i>
+            No se registran evaluaciones de desempeño para este trabajador en el sistema.
+          </div>
+        `}
+      </article>
+    `;
+  });
+  
+  printArea.innerHTML = htmlContent;
+  
+  // Renderizar los gráficos de cada subordinado
+  filteredSubordinados.forEach(s => {
+    const workerEvals = evaluationsCache.filter(ev => {
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && parsed.trabajador_id === s.id;
+      } catch(e) { return false; }
+    });
+    
+    let finalEvals = workerEvals;
+    if (dateDesde) finalEvals = finalEvals.filter(ev => ev.fecha >= dateDesde);
+    if (dateHasta) finalEvals = finalEvals.filter(ev => ev.fecha <= dateHasta);
+    
+    if (finalEvals.length === 0) return;
+    
+    const subCompSuma = {};
+    const subCompCuenta = {};
+    
+    finalEvals.forEach(ev => {
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        if (!parsed) return;
+        const valor = parseFloat(parsed.valor);
+        const aspecto = aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+        if (aspecto && aspecto.tipo === 'rango1,5' && !isNaN(valor)) {
+          const claseId = ev.clase_id;
+          if (!subCompSuma[claseId]) {
+            subCompSuma[claseId] = 0;
+            subCompCuenta[claseId] = 0;
+          }
+          subCompSuma[claseId] += valor;
+          subCompCuenta[claseId]++;
+        }
+      } catch(e) {}
+    });
+    
+    const labels = [];
+    const scores = [];
+    
+    classesCache.forEach(c => {
+      const suma = subCompSuma[c.id] || 0;
+      const cuenta = subCompCuenta[c.id] || 0;
+      if (cuenta > 0) {
+        labels.push(c.titulo);
+        scores.push(parseFloat((suma / cuenta).toFixed(1)));
+      }
+    });
+    
+    if (scores.length === 0) return;
+    
+    const canvas = document.getElementById(`repChart_${s.id}`);
+    if (!canvas) return;
+    
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDarkMode ? '#e2e8f0' : '#334155';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+    
+    const chartType = scores.length >= 3 ? 'radar' : 'bar';
+    const config = {
+      type: chartType,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Promedio por Competencia',
+          data: scores,
+          backgroundColor: 'rgba(21, 128, 61, 0.25)',
+          borderColor: 'rgba(21, 128, 61, 1)',
+          borderWidth: 2,
+          pointBackgroundColor: 'rgba(21, 128, 61, 1)',
+          pointBorderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {}
+      }
+    };
+    
+    if (chartType === 'radar') {
+      config.options.scales = {
+        r: {
+          angleLines: { color: gridColor },
+          grid: { color: gridColor },
+          pointLabels: {
+            color: textColor,
+            font: { size: 9, weight: 'bold' }
+          },
+          ticks: {
+            color: textColor,
+            backdropColor: 'transparent',
+            stepSize: 1
+          },
+          min: 0,
+          max: 5
+        }
+      };
+    } else {
+      config.options.scales = {
+        y: {
+          min: 0,
+          max: 5,
+          ticks: { color: textColor, stepSize: 1 },
+          grid: { color: gridColor }
+        },
+        x: {
+          ticks: { color: textColor, font: { size: 9 } },
+          grid: { display: false }
+        }
+      };
+    }
+    
+    new Chart(canvas.getContext('2d'), config);
+  });
+}
+
+function printReporteSubordinados() {
+  window.print();
 }
