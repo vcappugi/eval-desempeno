@@ -857,22 +857,39 @@ function renderSubordinados() {
     return;
   }
   
+  let html = '';
   subordinados.forEach(s => {
-    tbody.innerHTML += `
+    // Buscar si este subordinado tiene alguna evaluación en la caché para pintar el botón del gráfico
+    const tieneEvaluaciones = evaluationsCache.some(ev => {
+      try {
+        const parsed = JSON.parse(ev.evaluacion);
+        return parsed.trabajador_id === s.id;
+      } catch(e) {
+        return false;
+      }
+    });
+    
+    const miniChartIcon = tieneEvaluaciones ? 
+      `<button class="outline" style="padding: 0.4rem 0.6rem; margin-bottom: 0; margin-left: 0.25rem; border-color: var(--primary); color: var(--primary);" onclick="showWorkerChartModal(${s.id})" title="Ver Gráfico de Desempeño"><i class="fa-solid fa-chart-simple"></i></button>` : 
+      `<button class="outline secondary" style="padding: 0.4rem 0.6rem; margin-bottom: 0; margin-left: 0.25rem; opacity: 0.5;" onclick="showWorkerChartModal(${s.id})" title="Sin evaluaciones todavía"><i class="fa-solid fa-chart-simple"></i></button>`;
+
+    html += `
       <tr>
         <td><strong>${s.ficha || 'N/A'}</strong></td>
         <td>${s.cedula}</td>
         <td>${s.nombre}</td>
         <td>${s.departamento}</td>
         <td>${s.cargo}</td>
-        <td style="text-align: right;">
+        <td style="text-align: right; white-space: nowrap;">
           <button class="primary" style="padding: 0.4rem 0.8rem; font-size: 0.875rem; margin-bottom: 0;" onclick="startEvaluation(${s.id})">
             <i class="fa-solid fa-file-circle-check"></i> Evaluar / Ver
           </button>
+          ${miniChartIcon}
         </td>
       </tr>
     `;
   });
+  tbody.innerHTML = html;
 }
 
 function startEvaluation(trabajadorId) {
@@ -1439,4 +1456,203 @@ function renderIndicadoresGenerales() {
       });
     }
   }
+}
+
+let currentChartInstance = null;
+
+function showWorkerChartModal(workerId) {
+  const w = workersCache.find(worker => worker.id === workerId);
+  if (!w) return;
+  
+  document.getElementById('chartWorkerName').textContent = w.nombre;
+  document.getElementById('chartWorkerFicha').textContent = w.ficha || 'N/A';
+  document.getElementById('chartWorkerCargo').textContent = w.cargo || 'N/A';
+  
+  // Buscar todas las filas de evaluaciones en caché para este trabajador
+  const workerEvals = evaluationsCache.filter(ev => {
+    try {
+      const parsed = JSON.parse(ev.evaluacion);
+      return parsed.trabajador_id === workerId;
+    } catch(e) {
+      return false;
+    }
+  });
+  
+  const canvas = document.getElementById('workerChartCanvas');
+  const noDataMsg = document.getElementById('chartNoDataMsg');
+  const percentSpan = document.getElementById('chartScorePercent');
+  const scoreLabel = document.getElementById('chartScoreLabel');
+  const dateLabel = document.getElementById('chartDateLabel');
+  
+  // Destruir gráfico anterior si existe
+  if (currentChartInstance) {
+    currentChartInstance.destroy();
+    currentChartInstance = null;
+  }
+  
+  if (workerEvals.length === 0) {
+    // Sin datos
+    canvas.style.display = 'none';
+    noDataMsg.style.display = 'block';
+    percentSpan.textContent = '0%';
+    scoreLabel.textContent = 'Sin Evaluaciones';
+    dateLabel.textContent = 'Evaluado el: -';
+    
+    const circleContainer = percentSpan.parentElement;
+    if (circleContainer) {
+      circleContainer.style.borderColor = 'var(--border-color)';
+    }
+    
+    openModal('workerChartModal');
+    return;
+  }
+  
+  // Con datos
+  canvas.style.display = 'block';
+  noDataMsg.style.display = 'none';
+  
+  // Agrupar por competencia (clase_id) y calcular el promedio
+  const compSuma = {};
+  const compCuenta = {};
+  let totalSuma = 0;
+  let totalCuenta = 0;
+  let ultimaFecha = null;
+  
+  workerEvals.forEach(ev => {
+    try {
+      const parsed = JSON.parse(ev.evaluacion);
+      const valor = parseFloat(parsed.valor);
+      
+      // Tomar la fecha más reciente de evaluación
+      if (!ultimaFecha || new Date(ev.fecha) > new Date(ultimaFecha)) {
+        ultimaFecha = ev.fecha;
+      }
+      
+      const aspecto = aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+      if (aspecto && aspecto.tipo === 'rango1,5' && !isNaN(valor)) {
+        const claseId = ev.clase_id;
+        if (!compSuma[claseId]) {
+          compSuma[claseId] = 0;
+          compCuenta[claseId] = 0;
+        }
+        compSuma[claseId] += valor;
+        compCuenta[claseId]++;
+        
+        totalSuma += valor;
+        totalCuenta++;
+      }
+    } catch(e) {}
+  });
+  
+  // Calcular porcentaje general
+  const promedioGeneral = totalCuenta > 0 ? (totalSuma / totalCuenta) : 0;
+  const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 5) * 100) : 0;
+  
+  percentSpan.textContent = `${porcentajeGeneral}%`;
+  
+  // Modificar color de borde del círculo dinámicamente según el desempeño
+  const circleContainer = percentSpan.parentElement;
+  if (circleContainer) {
+    if (porcentajeGeneral >= 90) {
+      circleContainer.style.borderColor = 'var(--primary)'; // Verde primario (excelente)
+    } else if (porcentajeGeneral >= 70) {
+      circleContainer.style.borderColor = 'var(--primary-hover)'; // Verde suave (cumple)
+    } else if (porcentajeGeneral >= 50) {
+      circleContainer.style.borderColor = '#eab308'; // Amarillo (regular)
+    } else {
+      circleContainer.style.borderColor = '#ef4444'; // Rojo (bajo)
+    }
+  }
+  
+  // Clasificar resultado
+  let clasificacion = 'No evaluado';
+  if (porcentajeGeneral >= 90) clasificacion = 'Excelente (Sobresaliente)';
+  else if (porcentajeGeneral >= 75) clasificacion = 'Bueno (Cumple expectativas)';
+  else if (porcentajeGeneral >= 55) clasificacion = 'Regular (Requiere tutoría)';
+  else if (porcentajeGeneral > 0) clasificacion = 'Deficiente (Bajo desempeño)';
+  
+  scoreLabel.textContent = clasificacion;
+  dateLabel.textContent = `Evaluado el: ${ultimaFecha ? new Date(ultimaFecha).toLocaleDateString() : 'N/A'}`;
+  
+  // Preparar datos para el gráfico
+  const labels = [];
+  const scores = [];
+  
+  classesCache.forEach(c => {
+    const suma = compSuma[c.id] || 0;
+    const cuenta = compCuenta[c.id] || 0;
+    const promedio = cuenta > 0 ? parseFloat((suma / cuenta).toFixed(1)) : 0;
+    
+    // Solo mostrar competencias que tengan datos evaluados para este trabajador
+    if (cuenta > 0) {
+      labels.push(c.titulo);
+      scores.push(promedio);
+    }
+  });
+  
+  // Si por alguna razón no hay aspectos numéricos pero hay respuestas
+  if (scores.length === 0) {
+    canvas.style.display = 'none';
+    noDataMsg.style.display = 'block';
+    openModal('workerChartModal');
+    return;
+  }
+  
+  // Crear gráfico Radar de Chart.js
+  const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDarkMode ? '#e2e8f0' : '#334155';
+  const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+  
+  currentChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Promedio por Competencia',
+        data: scores,
+        backgroundColor: 'rgba(21, 128, 61, 0.25)',
+        borderColor: 'rgba(21, 128, 61, 1)',
+        borderWidth: 2,
+        pointBackgroundColor: 'rgba(21, 128, 61, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(21, 128, 61, 1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        r: {
+          angleLines: {
+            color: gridColor
+          },
+          grid: {
+            color: gridColor
+          },
+          pointLabels: {
+            color: textColor,
+            font: {
+              size: 11,
+              weight: 'bold'
+            }
+          },
+          ticks: {
+            color: textColor,
+            backdropColor: 'transparent',
+            stepSize: 1
+          },
+          min: 0,
+          max: 5
+        }
+      }
+    }
+  });
+  
+  openModal('workerChartModal');
 }

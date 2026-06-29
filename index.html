@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=2.0.6">
+  <link rel="stylesheet" href="style.css?v=2.0.7">
 </head>
 <body>
 
@@ -603,6 +603,47 @@
         </footer>
       </form>
     </article>
+  <!-- MODAL: GRÁFICO DE EVALUACIÓN -->
+  <dialog id="workerChartModal">
+    <article style="width: 100%; max-width: 700px;">
+      <header>
+        <button aria-label="Close" rel="prev" onclick="closeModal('workerChartModal')"></button>
+        <span id="workerChartModalTitle" style="font-weight: 700; font-size: 1.25rem;">Gráfico de Desempeño</span>
+      </header>
+      
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h4 style="margin: 0;" id="chartWorkerName">Nombre del Trabajador</h4>
+        <p style="margin: 0.25rem 0 0 0; color: var(--muted-color); font-size: 0.875rem;">Ficha: <span id="chartWorkerFicha">N/A</span> | Cargo: <span id="chartWorkerCargo">N/A</span></p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+        <!-- Chart Canvas -->
+        <div style="position: relative; width: 100%; height: 300px; display: flex; align-items: center; justify-content: center;">
+          <canvas id="workerChartCanvas" style="width: 100%; height: 100%;"></canvas>
+          <div id="chartNoDataMsg" style="display: none; text-align: center; color: var(--muted-color); font-size: 0.9rem;">
+            <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 0.5rem; display: block; color: var(--primary);"></i>
+            No se han registrado evaluaciones para este trabajador.
+          </div>
+        </div>
+        
+        <!-- Score and details -->
+        <div style="text-align: center; background-color: rgba(21, 128, 61, 0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <h5 style="margin-bottom: 0.75rem; color: var(--muted-color); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Resultado General</h5>
+          
+          <!-- Big circular percentage indicator -->
+          <div style="width: 120px; height: 120px; border-radius: 50%; border: 8px solid var(--border-color); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative;">
+            <span id="chartScorePercent" style="font-size: 1.75rem; font-weight: 800; color: var(--primary);">0%</span>
+          </div>
+          
+          <div id="chartScoreLabel" style="font-weight: 700; font-size: 1rem; color: var(--contrast); margin-bottom: 0.25rem;">N/A</div>
+          <small id="chartDateLabel" style="color: var(--muted-color); font-size: 0.8rem;">Evaluado el: -</small>
+        </div>
+      </div>
+      
+      <footer style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button class="primary" onclick="closeModal('workerChartModal')">Cerrar</button>
+      </footer>
+    </article>
   </dialog>
 
   <!-- TOAST NOTIFICATION CONTAINER -->
@@ -610,7 +651,9 @@
 
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Application JS Code -->
-  <script src="app.js?v=2.0.6"></script>
+  <script src="app.js?v=2.0.7"></script>
 </body>
 </html>
