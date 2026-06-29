@@ -668,7 +668,9 @@ dialog article {
   body {
     background: #ffffff !important;
     color: #000000 !important;
-    font-size: 11pt !important;
+    font-size: 9.5pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .main-header,
@@ -708,36 +710,78 @@ dialog article {
 
   .report-header {
     background: #ffffff !important;
-    border-bottom: 3px double #000000 !important;
-    padding: 1rem 0 !important;
-    margin-bottom: 1.5rem !important;
+    border-bottom: 2px double #000000 !important;
+    padding: 0.5rem 0 !important;
+    margin-bottom: 1rem !important;
     border-radius: 0 !important;
   }
 
   .report-header h3 {
     color: #000000 !important;
+    font-size: 1.15rem !important;
+  }
+
+  .report-logo {
+    height: 50px !important;
+  }
+
+  .subordinate-report-card {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* El primer reporte individual no necesita page-break-before ya que está al inicio */
+  .subordinate-report-card:first-of-type {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+  }
+
+  /* Forzar al resumen a ir en su propia página */
+  .summary-report-card {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 0 !important;
+  }
+
+  .subordinate-profile-grid {
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .subordinate-meta {
+    gap: 0.5rem !important;
+  }
+
+  .subordinate-meta div {
+    font-size: 0.8rem !important;
+  }
+
+  .kpi-row {
+    gap: 0.5rem !important;
   }
 
   .kpi-card {
     background: #f9fafb !important;
     border: 1px solid #e5e7eb !important;
+    padding: 0.4rem !important;
+  }
+
+  .kpi-card h5 {
+    font-size: 0.65rem !important;
   }
 
   .kpi-card h3 {
     color: #000000 !important;
-  }
-
-  .subordinate-report-card {
-    page-break-after: always !important;
-    break-after: page !important;
-    border: none !important;
-    padding-bottom: 2rem !important;
-    margin-bottom: 2rem !important;
-  }
-
-  .subordinate-report-card:last-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+    font-size: 1rem !important;
   }
 
   table {
@@ -748,8 +792,8 @@ dialog article {
   table th, table td {
     border: 1px solid #cbd5e1 !important;
     color: #000000 !important;
-    font-size: 9.5pt !important;
-    padding: 6px 8px !important;
+    font-size: 8.5pt !important;
+    padding: 4px 6px !important;
   }
 
   table th {
@@ -757,14 +801,15 @@ dialog article {
     font-weight: bold !important;
   }
 
-  .evaluation-date-title {
-    color: #000000 !important;
-    border-bottom: 1px solid #000000 !important;
-  }
-  
   canvas {
     max-width: 100% !important;
+    max-height: 160px !important; /* Altura compacta para gráficos */
     page-break-inside: avoid !important;
+  }
+
+  /* Ocultar el detalle de historial de preguntas/respuestas en la impresión */
+  .evaluation-detail-section {
+    display: none !important;
   }
 }
 
