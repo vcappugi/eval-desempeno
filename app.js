@@ -17,6 +17,18 @@ let classesCache = [];
 let aspectsCache = [];
 let evaluationsCache = [];
 
+// Helper para decodificar campos JSON de Supabase de forma segura (soporta objeto pre-parseado o string)
+function safeParseJSON(field) {
+  if (field === null || field === undefined) return null;
+  if (typeof field === 'object') return field;
+  try {
+    return JSON.parse(field);
+  } catch (e) {
+    console.error("Error al parsear JSON:", e, field);
+    return null;
+  }
+}
+
 // Inicialización al cargar el documento
 document.addEventListener("DOMContentLoaded", () => {
   const SUPABASE_URL = "https://qpyjdbchqbegqacurcdp.supabase.co";
@@ -862,8 +874,8 @@ function renderSubordinados() {
     // Buscar si este subordinado tiene alguna evaluación en la caché para pintar el botón del gráfico
     const tieneEvaluaciones = evaluationsCache.some(ev => {
       try {
-        const parsed = JSON.parse(ev.evaluacion);
-        return parsed.trabajador_id === s.id;
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && parsed.trabajador_id === s.id;
       } catch(e) {
         return false;
       }
@@ -1039,8 +1051,8 @@ function checkEvaluationDateUnique() {
   const evalRows = evaluationsCache.filter(ev => {
     if (ev.fecha !== fecha) return false;
     try {
-      const parsed = JSON.parse(ev.evaluacion);
-      return parsed.trabajador_id === trabajadorId;
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === trabajadorId;
     } catch(e) {
       return false;
     }
@@ -1056,8 +1068,8 @@ function checkEvaluationDateUnique() {
     // Rellenar las respuestas en el formulario
     evalRows.forEach(row => {
       try {
-        const parsed = JSON.parse(row.evaluacion);
-        const rating = parsed.valor;
+        const parsed = safeParseJSON(row.evaluacion);
+        const rating = parsed ? parsed.valor : '';
         const aspectoId = row.item_evaluacion_id;
         
         // Buscar el elemento de respuesta
@@ -1142,8 +1154,8 @@ async function saveEvaluation(event) {
   const existingRows = evaluationsCache.filter(ev => {
     if (ev.fecha !== fecha) return false;
     try {
-      const parsed = JSON.parse(ev.evaluacion);
-      return parsed.trabajador_id === trabajadorId;
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === trabajadorId;
     } catch(e) {
       return false;
     }
@@ -1235,8 +1247,9 @@ function renderCierreEvaluaciones() {
   
   evaluationsCache.forEach(ev => {
     try {
-      const parsed = JSON.parse(ev.evaluacion);
-      const trabajadorId = parsed.trabajador_id;
+      const parsed = safeParseJSON(ev.evaluacion);
+      const trabajadorId = parsed ? parsed.trabajador_id : null;
+      if (!trabajadorId) return;
       const key = `${trabajadorId}_${ev.fecha}`;
       
       if (!grouped[key]) {
@@ -1303,8 +1316,8 @@ async function toggleEvaluationStatus(trabajadorId, fecha, closeStatus) {
   const rowsToUpdate = evaluationsCache.filter(ev => {
     if (ev.fecha !== fecha) return false;
     try {
-      const parsed = JSON.parse(ev.evaluacion);
-      return parsed.trabajador_id === tId;
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === tId;
     } catch(e) {
       return false;
     }
@@ -1357,7 +1370,8 @@ function renderIndicadoresGenerales() {
   
   evaluationsCache.forEach(ev => {
     try {
-      const parsed = JSON.parse(ev.evaluacion);
+      const parsed = safeParseJSON(ev.evaluacion);
+      if (!parsed) return;
       const trabajadorId = parsed.trabajador_id;
       const valor = parsed.valor;
       const key = `${trabajadorId}_${ev.fecha}`;
@@ -1471,8 +1485,8 @@ function showWorkerChartModal(workerId) {
   // Buscar todas las filas de evaluaciones en caché para este trabajador
   const workerEvals = evaluationsCache.filter(ev => {
     try {
-      const parsed = JSON.parse(ev.evaluacion);
-      return parsed.trabajador_id === workerId;
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === workerId;
     } catch(e) {
       return false;
     }
@@ -1520,7 +1534,8 @@ function showWorkerChartModal(workerId) {
   
   workerEvals.forEach(ev => {
     try {
-      const parsed = JSON.parse(ev.evaluacion);
+      const parsed = safeParseJSON(ev.evaluacion);
+      if (!parsed) return;
       const valor = parseFloat(parsed.valor);
       
       // Tomar la fecha más reciente de evaluación
