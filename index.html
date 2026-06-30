@@ -122,12 +122,17 @@
       
       <!-- User Badge Footer -->
       <div class="sidebar-footer">
-        <div class="user-badge">
-          <div class="user-avatar" id="userAvatar">U</div>
-          <div class="user-info">
-            <span class="user-name" id="userName">Cargando...</span>
-            <span class="user-role" id="userRole">Rol</span>
+        <div class="user-badge" style="justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex-grow: 1;">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <div class="user-info" style="min-width: 0; flex-grow: 1;">
+              <span class="user-name" id="userName" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Cargando...</span>
+              <span class="user-role" id="userRole" style="display: block;">Rol</span>
+            </div>
           </div>
+          <button onclick="openPasswordModal()" style="padding: 0.25rem; margin: 0; border: none; background: transparent; cursor: pointer; color: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px;" title="Cambiar Contraseña">
+            <i class="fa-solid fa-key"></i>
+          </button>
         </div>
       </div>
     </aside>

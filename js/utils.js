@@ -89,6 +89,8 @@ export async function openModal(modalId) {
     await ensureTemplateLoaded('aspectoModal', 'modals/aspecto.html');
   } else if (modalId === 'workerChartModal') {
     await ensureTemplateLoaded('workerChartModal', 'modals/chart.html');
+  } else if (modalId === 'passwordModal') {
+    await ensureTemplateLoaded('passwordModal', 'modals/password.html');
   }
   
   const modal = document.getElementById(modalId);

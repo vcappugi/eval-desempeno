@@ -1,7 +1,5 @@
-// js/auth.js - Gestión de sesión y autenticación
-
 import { state } from './state.js';
-import { showToast } from './utils.js';
+import { showToast, openModal, closeModal, handleRlsError } from './utils.js';
 import { loadCaches } from './supabase.js';
 import { switchView } from './views.js';
 
@@ -121,4 +119,84 @@ export function showLoginView() {
   document.getElementById('loginView').style.display = 'flex';
   document.getElementById('mainHeader').style.display = 'none';
   document.getElementById('appContainer').style.display = 'none';
+}
+
+export async function openPasswordModal() {
+  await openModal('passwordModal');
+  document.getElementById('passwordForm')?.reset();
+}
+
+export async function saveNewPassword(event) {
+  if (event) event.preventDefault();
+  
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const submitBtn = document.getElementById('savePasswordSubmitBtn');
+  
+  console.log("Current user state:", state.currentUser);
+  console.log("Change password requested for worker ID:", state.currentUser?.id);
+  
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showToast("Por favor complete todos los campos.", "error");
+    return;
+  }
+  
+  if (currentPassword !== state.currentUser.clave) {
+    showToast("La contraseña anterior es incorrecta.", "error");
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showToast("La nueva contraseña y su confirmación no coinciden.", "error");
+    return;
+  }
+  
+  if (newPassword.length < 4) {
+    showToast("La nueva contraseña debe tener al menos 4 caracteres.", "error");
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  const originalHtml = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Actualizando...';
+  
+  try {
+    const { data, error } = await state.supabaseClient
+      .from('trabajador')
+      .update({ clave: newPassword })
+      .eq('id', state.currentUser.id)
+      .select();
+      
+    console.log("Supabase response:", { data, error });
+      
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      throw new Error("No se pudo actualizar la contraseña en la base de datos (0 filas afectadas).");
+    }
+    
+    // Update local state and sessions
+    state.currentUser.clave = newPassword;
+    const userString = JSON.stringify(state.currentUser);
+    if (localStorage.getItem('sessionUser')) {
+      localStorage.setItem('sessionUser', userString);
+    } else if (sessionStorage.getItem('sessionUser')) {
+      sessionStorage.setItem('sessionUser', userString);
+    }
+    
+    showToast("Contraseña actualizada correctamente.");
+    closeModal('passwordModal');
+    
+    // Reload caches so that worker list / admin panel has the new password too
+    await loadCaches();
+  } catch (err) {
+    console.error("Error updating password:", err);
+    showToast(err.message || "Error al actualizar la contraseña.", "error");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+    }
+  }
 }

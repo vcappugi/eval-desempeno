@@ -3,7 +3,7 @@
 import { state } from './state.js';
 import { initSupabase } from './supabase.js';
 import { closeModal } from './utils.js';
-import { checkSession, handleLogin, handleLogout } from './auth.js';
+import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js';
 import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js';
 import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation } from './evaluations.js';
 import {
@@ -48,6 +48,8 @@ window.switchAdminTab = switchAdminTab;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 window.closeModal = closeModal;
+window.openPasswordModal = openPasswordModal;
+window.saveNewPassword = saveNewPassword;
 
 // Supervisor / Evaluaciones
 window.startEvaluation = startEvaluation;
