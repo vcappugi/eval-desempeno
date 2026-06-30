@@ -97,15 +97,18 @@ export function toggleSidebar(forceState) {
   if (forceState !== undefined) {
     if (forceState) {
       sidebar.classList.remove('collapsed');
+      sidebar.classList.add('active');
       content.classList.remove('expanded');
       overlay.classList.add('active');
     } else {
       sidebar.classList.add('collapsed');
+      sidebar.classList.remove('active');
       content.classList.add('expanded');
       overlay.classList.remove('active');
     }
   } else {
     const isCollapsed = sidebar.classList.toggle('collapsed');
+    sidebar.classList.toggle('active', !isCollapsed);
     content.classList.toggle('expanded', isCollapsed);
     overlay.classList.toggle('active', !isCollapsed);
   }
