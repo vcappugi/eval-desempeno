@@ -1,0 +1,143 @@
+<!-- VIEW: PANEL ADMINISTRATIVO -->
+<section id="viewAdmin" style="display: none;">
+  <div class="premium-card" style="margin-bottom: 2rem;">
+    <h1><i class="fa-solid fa-gears text-primary"></i> Panel Administrativo</h1>
+    <p>Administración general del sistema de evaluación. Gestione trabajadores, competencias y aspectos a evaluar.</p>
+  </div>
+  
+  <!-- ADMIN TABS -->
+  <nav class="admin-tabs" style="margin-bottom: 1.5rem;">
+    <ul style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+      <li><a href="#" class="tab-link active" onclick="switchAdminTab('trabajadores')"><i class="fa-solid fa-users"></i> Trabajadores</a></li>
+      <li><a href="#" class="tab-link" onclick="switchAdminTab('competencias')"><i class="fa-solid fa-award"></i> Competencias</a></li>
+      <li><a href="#" class="tab-link" onclick="switchAdminTab('aspectos')"><i class="fa-solid fa-list-check"></i> Aspectos</a></li>
+      <li><a href="#" class="tab-link" onclick="switchAdminTab('cierre')"><i class="fa-solid fa-lock"></i> Cierre de Evaluaciones</a></li>
+    </ul>
+  </nav>
+  
+  <!-- ADMIN TAB: TRABAJADORES -->
+  <div id="adminTabTrabajadores" class="admin-tab-content">
+    <div class="premium-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-user-tie text-primary"></i> Tabla de Trabajadores</h3>
+        <button class="primary" style="padding: 0.5rem 1rem;" onclick="openTrabajadorModal()">
+          <i class="fa-solid fa-plus"></i> Agregar Trabajador
+        </button>
+      </div>
+      
+      <!-- Search Bar -->
+      <div style="margin-bottom: 1rem;">
+        <input type="search" id="searchWorkerInput" placeholder="🔍 Buscar trabajador por cédula, nombre o usuario..." oninput="handleWorkerSearch(this.value)" style="margin-bottom: 0;">
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Ficha</th>
+              <th>Cédula</th>
+              <th>Nombre</th>
+              <th>Empresa</th>
+              <th>Departamento</th>
+              <th>Cargo</th>
+              <th>Rol</th>
+              <th>Fecha Creación</th>
+              <th style="text-align: right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="trabajadoresTableBody">
+            <!-- Trabajadores CRUD list -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div id="workersPaginationContainer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="font-size: 0.875rem; color: var(--muted-color);">
+          Mostrando <span id="workersShowingRange">0-0</span> de <span id="workersTotalCount">0</span> trabajadores
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="btnPrevWorkersPage" class="outline secondary" style="padding: 0.25rem 0.75rem; margin-bottom: 0;" onclick="changeWorkersPage(-1)">
+            <i class="fa-solid fa-chevron-left"></i> Anterior
+          </button>
+          <span style="font-size: 0.875rem; font-weight: 600; padding: 0 0.5rem;">
+            Página <span id="workersCurrentPageLabel">1</span> de <span id="workersTotalPagesLabel">1</span>
+          </span>
+          <button id="btnNextWorkersPage" class="outline secondary" style="padding: 0.25rem 0.75rem; margin-bottom: 0;" onclick="changeWorkersPage(1)">
+            Siguiente <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ADMIN TAB: COMPETENCIAS (CLASE) -->
+  <div id="adminTabCompetencias" class="admin-tab-content" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h3 style="margin: 0;"><i class="fa-solid fa-award text-primary"></i> Competencias a Evaluar</h3>
+      <button class="primary" style="padding: 0.5rem 1rem;" onclick="openCompetenciaModal()">
+        <i class="fa-solid fa-plus"></i> Agregar Competencia
+      </button>
+    </div>
+    
+    <div id="competenciasCardsContainer" class="competencia-grid">
+      <!-- Competencies cards populated here -->
+    </div>
+  </div>
+  
+  <!-- ADMIN TAB: ASPECTOS (ITEM_EVALUACION) -->
+  <div id="adminTabAspectos" class="admin-tab-content" style="display: none;">
+    <div class="premium-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-list-check text-primary"></i> Aspectos de Evaluación</h3>
+        <button class="primary" style="padding: 0.5rem 1rem;" onclick="openAspectoModal()">
+          <i class="fa-solid fa-plus"></i> Agregar Aspecto
+        </button>
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Orden</th>
+              <th>Competencia</th>
+              <th>Descripción de Aspecto</th>
+              <th>Tipo de Respuesta</th>
+              <th>Ponderación</th>
+              <th style="text-align: right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="aspectosTableBody">
+            <!-- Aspectos CRUD list -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ADMIN TAB: CIERRE DE EVALUACIONES -->
+  <div id="adminTabCierre" class="admin-tab-content" style="display: none;">
+    <div class="premium-card">
+      <h3><i class="fa-solid fa-lock text-primary"></i> Cierre de Evaluaciones Realizadas</h3>
+      <p>Monitoree y cierre las evaluaciones realizadas por los supervisores. Una vez cerrada, una evaluación pasa a ser **no editable**.</p>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Evaluado (Ficha)</th>
+              <th>Fecha Evaluación</th>
+              <th>Competencias Evaluadas</th>
+              <th>Estado</th>
+              <th style="text-align: right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cierreEvaluacionesTableBody">
+            <!-- Evaluaciones cierre list -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

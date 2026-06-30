@@ -1,0 +1,49 @@
+<!-- VIEW: REPORTE INDIVIDUAL DE SUBORDINADOS -->
+<section id="viewReporteSubordinados" style="display: none;">
+  <!-- CONTROLS CONTAINER (HIDDEN ON PRINT) -->
+  <div class="premium-card no-print" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0;"><i class="fa-solid fa-file-invoice text-primary"></i> Informe de Subordinados</h2>
+        <p style="margin: 0.25rem 0 0 0; color: var(--muted-color);">Genere y exporte el informe de indicadores individuales del personal a su cargo.</p>
+      </div>
+      <div>
+        <button class="primary" style="padding: 0.6rem 1.2rem; margin-bottom: 0;" onclick="printReporteSubordinados()">
+          <i class="fa-solid fa-print"></i> Imprimir Informe
+        </button>
+      </div>
+    </div>
+    
+    <hr style="margin: 1.5rem 0 1rem 0;">
+    
+    <!-- Filter Controls -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; align-items: end;">
+      <div>
+        <label for="repFiltroSubordinado" style="margin-bottom: 0;">
+          Seleccionar Trabajador
+          <select id="repFiltroSubordinado" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">
+            <option value="todos">Todos los subordinados</option>
+            <!-- Populated dynamically -->
+          </select>
+        </label>
+      </div>
+      <div>
+        <label for="repFiltroFechaDesde" style="margin-bottom: 0;">
+          Fecha Desde
+          <input type="date" id="repFiltroFechaDesde" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">
+        </label>
+      </div>
+      <div>
+        <label for="repFiltroFechaHasta" style="margin-bottom: 0;">
+          Fecha Hasta
+          <input type="date" id="repFiltroFechaHasta" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT CONTAINER (PRINTABLE AREA) -->
+  <div id="reporteSubordinadosPrintArea">
+    <!-- Dynamically populated from JS -->
+  </div>
+</section>

@@ -1,0 +1,95 @@
+<!-- VIEW: INDICADORES GENERALES -->
+<section id="viewIndicadores" style="display: none;">
+  <div class="premium-card" style="margin-bottom: 2rem;">
+    <h1><i class="fa-solid fa-chart-pie text-primary"></i> Indicadores Generales de Desempeño</h1>
+    <p>Métricas consolidadas de las evaluaciones de desempeño registradas en el sistema.</p>
+  </div>
+  
+  <!-- Stats Grid cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Card 1: Total Trabajadores -->
+    <article class="premium-card" style="margin-bottom: 0; padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <div style="background-color: rgba(21,128,61,0.1); color: var(--primary); padding: 1rem; border-radius: 12px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <div>
+        <h5 style="margin: 0; font-size: 0.875rem; color: var(--muted-color);">Trabajadores Totales</h5>
+        <h2 id="indTotalTrabajadores" style="margin: 0; font-size: 1.75rem; font-weight: 700;">0</h2>
+      </div>
+    </article>
+    
+    <!-- Card 2: Evaluaciones Realizadas -->
+    <article class="premium-card" style="margin-bottom: 0; padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <div style="background-color: rgba(21,128,61,0.1); color: var(--primary); padding: 1rem; border-radius: 12px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-file-invoice"></i>
+      </div>
+      <div>
+        <h5 style="margin: 0; font-size: 0.875rem; color: var(--muted-color);">Evaluaciones Hechas</h5>
+        <h2 id="indTotalEvaluaciones" style="margin: 0; font-size: 1.75rem; font-weight: 700;">0</h2>
+      </div>
+    </article>
+    
+    <!-- Card 3: Promedio General -->
+    <article class="premium-card" style="margin-bottom: 0; padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <div style="background-color: rgba(21,128,61,0.1); color: var(--primary); padding: 1rem; border-radius: 12px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-star"></i>
+      </div>
+      <div>
+        <h5 style="margin: 0; font-size: 0.875rem; color: var(--muted-color);">Calificación Promedio</h5>
+        <h2 id="indPromedioGeneral" style="margin: 0; font-size: 1.75rem; font-weight: 700;">0.0 / 4</h2>
+      </div>
+    </article>
+    
+    <!-- Card 4: Tasa de Participación -->
+    <article class="premium-card" style="margin-bottom: 0; padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <div style="background-color: rgba(21,128,61,0.1); color: var(--primary); padding: 1rem; border-radius: 12px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-percent"></i>
+      </div>
+      <div>
+        <h5 style="margin: 0; font-size: 0.875rem; color: var(--muted-color);">Personal Evaluado</h5>
+        <h2 id="indPorcentajeEvaluados" style="margin: 0; font-size: 1.75rem; font-weight: 700;">0%</h2>
+      </div>
+    </article>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.5rem;">
+    <!-- Competency Average list -->
+    <div class="premium-card" style="margin-bottom: 0;">
+      <h3><i class="fa-solid fa-list-ol text-primary"></i> Promedio por Competencia</h3>
+      <p>Puntuación promedio de los aspectos correspondientes a cada competencia.</p>
+      <div id="indCompetenciasList" style="display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem;">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+
+    <!-- Evaluation Status and detailed indicators -->
+    <div class="premium-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <h3><i class="fa-solid fa-circle-info text-primary"></i> Estado de Evaluaciones</h3>
+        <p>Estado de los reportes de desempeño registrados en el sistema.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Evaluaciones Abiertas (Editables)</span>
+            <strong id="indEvalsAbiertas" class="badge" style="background-color: #eab308; color: white; padding: 0.1rem 0.5rem; border-radius: 4px;">0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Evaluaciones Cerradas (Historial)</span>
+            <strong id="indEvalsCerradas" class="badge" style="background-color: var(--primary); color: white; padding: 0.1rem 0.5rem; border-radius: 4px;">0</strong>
+          </div>
+          <hr style="margin: 1rem 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Total Aspectos Evaluados</span>
+            <strong id="indTotalAspectosEvaluados" style="font-weight: 600;">0</strong>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background-color: rgba(21, 128, 61, 0.05); border: 1px solid rgba(21, 128, 61, 0.1); border-radius: 8px; padding: 1rem; margin-top: 2rem;">
+        <small style="color: var(--muted-color); display: block; text-align: center;">
+          <i class="fa-solid fa-arrows-rotate fa-spin text-primary"></i> Los indicadores se actualizan en tiempo real con la base de datos de Supabase.
+        </small>
+      </div>
+    </div>
+  </div>
+</section>
