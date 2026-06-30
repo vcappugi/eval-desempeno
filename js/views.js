@@ -24,24 +24,24 @@ export async function switchView(viewName) {
   
   // Cargar y mostrar la vista correspondiente
   if (viewName === 'evaluaciones') {
-    await ensureTemplateLoaded('viewEvaluaciones', 'views/evaluaciones.html', 'mainContent');
+    await ensureTemplateLoaded('viewEvaluaciones', 'views/evaluaciones.html', 'viewsContainer');
     document.getElementById('viewEvaluaciones').style.display = 'block';
     hideOtherViews('viewEvaluaciones');
     renderSubordinados();
     closeEvaluationForm();
   } else if (viewName === 'indicadores') {
-    await ensureTemplateLoaded('viewIndicadores', 'views/indicadores.html', 'mainContent');
+    await ensureTemplateLoaded('viewIndicadores', 'views/indicadores.html', 'viewsContainer');
     document.getElementById('viewIndicadores').style.display = 'block';
     hideOtherViews('viewIndicadores');
     renderIndicadoresGenerales();
   } else if (viewName === 'reporteSubordinados') {
-    await ensureTemplateLoaded('viewReporteSubordinados', 'views/reporteSubordinados.html', 'mainContent');
+    await ensureTemplateLoaded('viewReporteSubordinados', 'views/reporteSubordinados.html', 'viewsContainer');
     document.getElementById('viewReporteSubordinados').style.display = 'block';
     hideOtherViews('viewReporteSubordinados');
     initReporteSubordinadosFilters();
     renderReporteSubordinados();
   } else if (viewName === 'admin' && state.currentUser.rol === 'admin') {
-    await ensureTemplateLoaded('viewAdmin', 'views/admin.html', 'mainContent');
+    await ensureTemplateLoaded('viewAdmin', 'views/admin.html', 'viewsContainer');
     document.getElementById('viewAdmin').style.display = 'block';
     hideOtherViews('viewAdmin');
     switchAdminTab(state.activeAdminTab);

@@ -25,7 +25,7 @@
       <div class="login-logo">
         <img src="images/BEL_LOGO.jpg" alt="BEL Logo" onerror="this.src='https://placehold.co/120x80/2e7d32/ffffff?text=BEL+Group'">
         <h1 class="login-title">Evaluación de Desempeño</h1>
-        <small style="color: var(--muted-color)">Auto Partes Bel & Filiales</small>
+        <small style="color: var(--muted-color)">Corporacion BEL</small>
       </div>
       
       <form id="loginForm" onsubmit="handleLogin(event)">
@@ -138,10 +138,13 @@
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main id="mainContent" class="main-content">
+    <main id="mainContent" class="main-content" style="display: flex; flex-direction: column; min-height: calc(100vh - var(--header-height)); justify-content: space-between;">
+      
+      <!-- Views Container -->
+      <div id="viewsContainer" style="flex-grow: 1;"></div>
       
       <!-- FOOTER -->
-      <footer class="app-footer" style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 1rem; text-align: center; padding-bottom: 1rem;">
+      <footer class="app-footer" style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 1rem; text-align: center; padding-bottom: 1rem; width: 100%;">
         <small style="color: var(--muted-color); font-weight: 500;">
           Gerencia de Transformación Digital
         </small>
