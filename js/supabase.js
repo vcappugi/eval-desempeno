@@ -59,6 +59,11 @@ export async function loadCaches() {
     if (evalsRes.error) throw evalsRes.error;
     state.evaluationsCache = evalsRes.data || [];
     
+    // 5. Fechas de Evaluación
+    const datesRes = await state.supabaseClient.from('fecha_eval').select('*').order('fecha', { ascending: false });
+    if (datesRes.error) throw datesRes.error;
+    state.fechaEvalCache = datesRes.data || [];
+    
     // Llenar selects dinámicos si es que ya están cargados en el DOM
     populateSupervisorSelects();
     populateCompetenciasSelects();

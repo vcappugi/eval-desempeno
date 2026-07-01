@@ -11,11 +11,31 @@ export function renderSubordinados() {
   
   tbody.innerHTML = '';
   
-  // Buscar trabajadores bajo la supervisión directa del usuario actual
-  const subordinados = state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
+  const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
+  
+  // Actualizar textos de cabecera según el rol
+  const headerTitle = document.getElementById('evaluacionesHeaderTitle');
+  const headerDesc = document.getElementById('evaluacionesHeaderDesc');
+  if (headerTitle && headerDesc) {
+    if (isAdmin) {
+      headerTitle.innerHTML = '<i class="fa-solid fa-users-gear text-primary"></i> Evaluaciones de Desempeño';
+      headerDesc.textContent = 'Seleccione el trabajador que desea evaluar o ver. Se muestran todos los trabajadores registrados en el sistema por su rol de administrador.';
+    } else {
+      headerTitle.innerHTML = '<i class="fa-solid fa-users-gear text-primary"></i> Personal a su Cargo';
+      headerDesc.textContent = 'Seleccione el trabajador que desea evaluar. Solo se muestran los trabajadores bajo su supervisión directa.';
+    }
+  }
+  
+  // Buscar trabajadores bajo la supervisión directa del usuario actual (o todos si es admin)
+  const subordinados = isAdmin
+    ? state.workersCache
+    : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
   if (subordinados.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Usted no tiene trabajadores registrados bajo su supervisión directa.</td></tr>';
+    const emptyMsg = isAdmin
+      ? 'No hay trabajadores registrados en el sistema.'
+      : 'Usted no tiene trabajadores registrados bajo su supervisión directa.';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">${emptyMsg}</td></tr>`;
     return;
   }
   
@@ -65,7 +85,25 @@ export function startEvaluation(trabajadorId) {
   
   // Resetear formulario
   document.getElementById('evaluacionIdInput').value = '';
-  document.getElementById('evalFecha').value = new Date().toISOString().split('T')[0]; // Hoy
+  
+  // Poblar select de fechas de evaluación
+  const selectFecha = document.getElementById('evalFecha');
+  if (selectFecha) {
+    selectFecha.innerHTML = '';
+    state.fechaEvalCache.forEach(fe => {
+      const option = document.createElement('option');
+      option.value = fe.fecha;
+      option.textContent = new Date(fe.fecha + 'T00:00:00').toLocaleDateString();
+      selectFecha.appendChild(option);
+    });
+  }
+  
+  if (state.fechaEvalCache.length > 0) {
+    selectFecha.value = state.fechaEvalCache[0].fecha;
+  } else {
+    showToast("No hay fechas de evaluación registradas en el sistema.", "warning");
+  }
+  
   document.getElementById('evalEstadoLabel').value = 'Abierta (Editable)';
   document.getElementById('btnGuardarEvaluacion').disabled = false;
   

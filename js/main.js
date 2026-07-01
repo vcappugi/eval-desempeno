@@ -21,7 +21,11 @@ import {
   deleteAspecto,
   openAspectoModal,
   saveAspecto,
-  toggleEvaluationStatus
+  toggleEvaluationStatus,
+  editFechaEval,
+  deleteFechaEval,
+  openFechaEvalModal,
+  saveFechaEval
 } from './admin.js';
 import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados } from './reports.js';
 
@@ -80,6 +84,12 @@ window.saveAspecto = saveAspecto;
 
 // Cierre de Evaluaciones
 window.toggleEvaluationStatus = toggleEvaluationStatus;
+
+// CRUD Fechas
+window.editFechaEval = editFechaEval;
+window.deleteFechaEval = deleteFechaEval;
+window.openFechaEvalModal = openFechaEvalModal;
+window.saveFechaEval = saveFechaEval;
 
 // Reportes y Gráficos
 window.showWorkerChartModal = showWorkerChartModal;

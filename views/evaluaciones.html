@@ -1,8 +1,8 @@
 <!-- VIEW: EVALUACIONES PANEL -->
 <section id="viewEvaluaciones" style="display: none;">
   <div class="premium-card">
-    <h2><i class="fa-solid fa-users-gear text-primary"></i> Personal a su Cargo</h2>
-    <p>Seleccione el trabajador que desea evaluar. Solo se muestran los trabajadores bajo su supervisión directa.</p>
+    <h2 id="evaluacionesHeaderTitle"><i class="fa-solid fa-users-gear text-primary"></i> Personal a su Cargo</h2>
+    <p id="evaluacionesHeaderDesc">Seleccione el trabajador que desea evaluar. Solo se muestran los trabajadores bajo su supervisión directa.</p>
     
     <div class="table-wrapper">
       <table>
@@ -40,13 +40,22 @@
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
         <label for="evalFecha">
           Fecha de Evaluación
-          <input type="date" id="evalFecha" required onchange="checkEvaluationDateUnique()">
+          <select id="evalFecha" required onchange="checkEvaluationDateUnique()"></select>
         </label>
         
         <label for="evalEstadoLabel">
           Estado
           <input type="text" id="evalEstadoLabel" value="Abierta (Editable)" readonly>
         </label>
+      </div>
+      
+      <!-- Instrucciones de la evaluación -->
+      <div style="margin-bottom: 2rem; padding: 1.25rem; border-radius: 12px; background-color: var(--primary-focus); border-left: 5px solid var(--primary); font-size: 0.95rem; line-height: 1.6; text-align: justify;">
+        A continuación encontrará un conjunto de factores a considerar para evaluar el desempeño del personal a su cargo. Tomando en consideración la definición y el alcance de cada factor, usted deberá identificar en cada uno de los factores la descripción que más se ajusta a la conducta del evaluado, marcando el numero correspondiente a la seleccion, en donde 
+        <span class="eval-badge eval-badge-1">(1) es Insuficiente</span>, 
+        <span class="eval-badge eval-badge-2">(2) Regular</span>, 
+        <span class="eval-badge eval-badge-3">(3) Bueno</span> y 
+        <span class="eval-badge eval-badge-4">(4) Muy Bueno</span>.
       </div>
       
       <!-- Dynamic competencies and aspects will render here -->

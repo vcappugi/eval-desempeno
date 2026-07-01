@@ -12,6 +12,7 @@
       <li><a href="#" class="tab-link" onclick="switchAdminTab('competencias')"><i class="fa-solid fa-award"></i> Competencias</a></li>
       <li><a href="#" class="tab-link" onclick="switchAdminTab('aspectos')"><i class="fa-solid fa-list-check"></i> Aspectos</a></li>
       <li><a href="#" class="tab-link" onclick="switchAdminTab('cierre')"><i class="fa-solid fa-lock"></i> Cierre de Evaluaciones</a></li>
+      <li><a href="#" class="tab-link" onclick="switchAdminTab('fechas')"><i class="fa-solid fa-calendar-days"></i> Fechas de Evaluación</a></li>
     </ul>
   </nav>
   
@@ -135,6 +136,34 @@
           </thead>
           <tbody id="cierreEvaluacionesTableBody">
             <!-- Evaluaciones cierre list -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ADMIN TAB: FECHAS DE EVALUACION -->
+  <div id="adminTabFechas" class="admin-tab-content" style="display: none;">
+    <div class="premium-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-calendar-days text-primary"></i> Fechas de Evaluación</h3>
+        <button class="primary" style="padding: 0.5rem 1rem;" onclick="openFechaEvalModal()">
+          <i class="fa-solid fa-plus"></i> Agregar Fecha
+        </button>
+      </div>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha de Evaluación</th>
+              <th>Fecha Registro</th>
+              <th style="text-align: right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="fechasEvalTableBody">
+            <!-- Fechas CRUD list -->
           </tbody>
         </table>
       </div>

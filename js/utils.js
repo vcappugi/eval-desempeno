@@ -57,7 +57,8 @@ export async function ensureTemplateLoaded(id, filepath, parentId = null) {
   }
   
   try {
-    const response = await fetch(filepath);
+    const cacheBuster = filepath.includes('?') ? `&_=${Date.now()}` : `?_=${Date.now()}`;
+    const response = await fetch(filepath + cacheBuster);
     if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
     const html = await response.text();
     
@@ -91,6 +92,8 @@ export async function openModal(modalId) {
     await ensureTemplateLoaded('workerChartModal', 'modals/chart.html');
   } else if (modalId === 'passwordModal') {
     await ensureTemplateLoaded('passwordModal', 'modals/password.html');
+  } else if (modalId === 'fechaEvalModal') {
+    await ensureTemplateLoaded('fechaEvalModal', 'modals/fecha_eval.html');
   }
   
   const modal = document.getElementById(modalId);

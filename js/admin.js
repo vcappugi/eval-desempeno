@@ -641,3 +641,178 @@ export function populateCompetenciasSelects() {
   });
   select.value = val;
 }
+
+// ================= CRUD: FECHAS DE EVALUACIÓN (FECHA_EVAL) =================
+
+export function renderFechasEvalCrud() {
+  const tbody = document.getElementById('fechasEvalTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando fechas...</td></tr>';
+  
+  if (state.fechaEvalCache.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No hay fechas de evaluación registradas.</td></tr>';
+    return;
+  }
+  
+  let html = '';
+  state.fechaEvalCache.forEach(fe => {
+    const createdDate = fe.created_at ? new Date(fe.created_at).toLocaleDateString() : 'N/A';
+    
+    // Verificar si esta fecha ya tiene evaluaciones realizadas
+    const tieneEvaluaciones = state.evaluationsCache.some(ev => {
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        // O simplemente comparar ev.fecha con fe.fecha
+        return ev.fecha === fe.fecha;
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    let actionButtons = '';
+    if (tieneEvaluaciones) {
+      actionButtons = `
+        <span style="background-color: var(--primary-focus); color: var(--primary); font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+          <i class="fa-solid fa-lock"></i> Con Evaluaciones
+        </span>
+      `;
+    } else {
+      actionButtons = `
+        <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editFechaEval(${fe.id})" title="Modificar">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="outline contrast" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="deleteFechaEval(${fe.id})" title="Eliminar">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      `;
+    }
+    
+    html += `
+      <tr>
+        <td><strong>${fe.id}</strong></td>
+        <td>${new Date(fe.fecha + 'T00:00:00').toLocaleDateString()}</td>
+        <td>${createdDate}</td>
+        <td style="text-align: right; white-space: nowrap;">
+          ${actionButtons}
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+export async function openFechaEvalModal() {
+  await openModal('fechaEvalModal');
+  document.getElementById('fechaEvalForm').reset();
+  document.getElementById('fechaEvalIdInput').value = '';
+  document.getElementById('fechaEvalFecha').disabled = false;
+  document.getElementById('fechaEvalModalTitle').textContent = 'Agregar Fecha de Evaluación';
+}
+
+export async function editFechaEval(id) {
+  const fe = state.fechaEvalCache.find(item => item.id === id);
+  if (!fe) return;
+  
+  // Validar si tiene evaluaciones antes de permitir abrir edición
+  const tieneEvaluaciones = state.evaluationsCache.some(ev => ev.fecha === fe.fecha);
+  if (tieneEvaluaciones) {
+    showToast("No se puede modificar una fecha que ya tiene evaluaciones realizadas.", "error");
+    return;
+  }
+  
+  await openModal('fechaEvalModal');
+  document.getElementById('fechaEvalIdInput').value = fe.id;
+  document.getElementById('fechaEvalFecha').value = fe.fecha;
+  document.getElementById('fechaEvalFecha').disabled = false;
+  
+  document.getElementById('fechaEvalModalTitle').textContent = 'Modificar Fecha de Evaluación';
+}
+
+export async function saveFechaEval(event) {
+  if (event) event.preventDefault();
+  const id = document.getElementById('fechaEvalIdInput').value;
+  const fecha = document.getElementById('fechaEvalFecha').value;
+  
+  if (!fecha) {
+    showToast("Por favor seleccione una fecha.", "error");
+    return;
+  }
+  
+  // Validar si se está modificando y si la fecha vieja tenía evaluaciones
+  if (id) {
+    const oldFe = state.fechaEvalCache.find(item => item.id === parseInt(id));
+    if (oldFe) {
+      const tieneEvaluaciones = state.evaluationsCache.some(ev => ev.fecha === oldFe.fecha);
+      if (tieneEvaluaciones) {
+        showToast("No se puede modificar una fecha que ya tiene evaluaciones realizadas.", "error");
+        return;
+      }
+    }
+  }
+  
+  // Validar duplicados de fecha en el sistema
+  const existeFecha = state.fechaEvalCache.some(item => item.fecha === fecha && item.id !== parseInt(id));
+  if (existeFecha) {
+    showToast("Esta fecha ya se encuentra registrada en el sistema.", "error");
+    return;
+  }
+  
+  const payload = { fecha };
+  
+  try {
+    if (id) {
+      const { error } = await state.supabaseClient
+        .from('fecha_eval')
+        .update(payload)
+        .eq('id', id);
+        
+      if (error) throw error;
+      showToast("Fecha de evaluación actualizada exitosamente.");
+    } else {
+      const { error } = await state.supabaseClient
+        .from('fecha_eval')
+        .insert([payload]);
+        
+      if (error) throw error;
+      showToast("Fecha de evaluación creada exitosamente.");
+    }
+    
+    closeModal('fechaEvalModal');
+    await loadCaches();
+    renderFechasEvalCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
+export async function deleteFechaEval(id) {
+  const fe = state.fechaEvalCache.find(item => item.id === id);
+  if (!fe) return;
+  
+  // Validar si tiene evaluaciones
+  const tieneEvaluaciones = state.evaluationsCache.some(ev => ev.fecha === fe.fecha);
+  if (tieneEvaluaciones) {
+    showToast("No se puede eliminar una fecha que ya tiene evaluaciones realizadas.", "error");
+    return;
+  }
+  
+  if (!confirm(`¿Está seguro de eliminar la fecha de evaluación "${new Date(fe.fecha + 'T00:00:00').toLocaleDateString()}"?`)) {
+    return;
+  }
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('fecha_eval')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+    
+    showToast("Fecha de evaluación eliminada correctamente.");
+    await loadCaches();
+    renderFechasEvalCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}

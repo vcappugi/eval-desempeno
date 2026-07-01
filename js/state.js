@@ -13,6 +13,7 @@ export const state = {
   classesCache: [],
   aspectsCache: [],
   evaluationsCache: [],
+  fechaEvalCache: [],
   
   // Cliente de Supabase
   supabaseClient: null,

@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { ensureTemplateLoaded } from './utils.js';
 import { renderSubordinados, closeEvaluationForm } from './evaluations.js';
 import { renderIndicadoresGenerales, initReporteSubordinadosFilters, renderReporteSubordinados } from './reports.js';
-import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones } from './admin.js';
+import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud } from './admin.js';
 
 export async function switchView(viewName) {
   state.activeView = viewName;
@@ -79,12 +79,14 @@ export function switchAdminTab(tabName) {
   document.getElementById('adminTabCompetencias').style.display = tabName === 'competencias' ? 'block' : 'none';
   document.getElementById('adminTabAspectos').style.display = tabName === 'aspectos' ? 'block' : 'none';
   document.getElementById('adminTabCierre').style.display = tabName === 'cierre' ? 'block' : 'none';
+  document.getElementById('adminTabFechas').style.display = tabName === 'fechas' ? 'block' : 'none';
   
   // Renderizar información correspondiente
   if (tabName === 'trabajadores') renderTrabajadoresCrud();
   else if (tabName === 'competencias') renderCompetenciasCrud();
   else if (tabName === 'aspectos') renderAspectosCrud();
   else if (tabName === 'cierre') renderCierreEvaluaciones();
+  else if (tabName === 'fechas') renderFechasEvalCrud();
 }
 
 export function toggleSidebar(forceState) {

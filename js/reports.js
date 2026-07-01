@@ -385,9 +385,28 @@ export function initReporteSubordinadosFilters() {
   if (!select) return;
   
   const currentVal = select.value || 'todos';
-  const subordinados = state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
+  const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
   
-  let html = '<option value="todos">Todos los subordinados</option>';
+  // Actualizar textos de cabecera en reportes según el rol
+  const headerTitle = document.getElementById('reporteSubordinadosHeaderTitle');
+  const headerDesc = document.getElementById('reporteSubordinadosHeaderDesc');
+  if (headerTitle && headerDesc) {
+    if (isAdmin) {
+      headerTitle.innerHTML = '<i class="fa-solid fa-file-invoice text-primary"></i> Informe de Desempeño del Personal';
+      headerDesc.textContent = 'Genere y exporte el informe de indicadores individuales de todos los trabajadores.';
+    } else {
+      headerTitle.innerHTML = '<i class="fa-solid fa-file-invoice text-primary"></i> Informe de Subordinados';
+      headerDesc.textContent = 'Genere y exporte el informe de indicadores individuales del personal a su cargo.';
+    }
+  }
+  
+  const subordinados = isAdmin
+    ? state.workersCache
+    : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
+  
+  let html = isAdmin
+    ? '<option value="todos">Todos los trabajadores</option>'
+    : '<option value="todos">Todos los subordinados</option>';
   subordinados.forEach(s => {
     html += `<option value="${s.id}">${s.nombre} (Ficha: ${s.ficha || 'N/A'})</option>`;
   });
@@ -400,14 +419,21 @@ export function renderReporteSubordinados() {
   const printArea = document.getElementById('reporteSubordinadosPrintArea');
   if (!printArea) return;
   
-  const subordinados = state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
+  const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
+  const subordinados = isAdmin
+    ? state.workersCache
+    : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
   if (subordinados.length === 0) {
+    const emptyTitle = isAdmin ? 'No hay personal registrado' : 'No posee subordinados asignados';
+    const emptyMsg = isAdmin
+      ? 'No hay trabajadores registrados en el sistema.'
+      : 'Usted no tiene trabajadores registrados bajo su supervisión directa en el sistema.';
     printArea.innerHTML = `
       <div class="premium-card" style="text-align: center; padding: 3rem;">
         <i class="fa-solid fa-users-slash text-primary" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-        <h4 style="margin: 0 0 0.5rem 0;">No posee subordinados asignados</h4>
-        <p style="color: var(--muted-color); margin: 0;">Usted no tiene trabajadores registrados bajo su supervisión directa en el sistema.</p>
+        <h4 style="margin: 0 0 0.5rem 0;">${emptyTitle}</h4>
+        <p style="color: var(--muted-color); margin: 0;">${emptyMsg}</p>
       </div>
     `;
     return;
@@ -435,14 +461,14 @@ export function renderReporteSubordinados() {
     'Deficiente (Bajo)': 0,
     'Sin Evaluaciones': 0
   };
-
+ 
   let htmlContent = `
     <div class="report-header">
       <img src="images/BEL_LOGO.jpg" alt="BEL Logo" class="report-logo" onerror="this.src='https://placehold.co/100x60/2e7d32/ffffff?text=BEL'">
       <div class="report-header-text">
         <h3>Corporación BEL</h3>
         <p><strong>Informe de Indicadores Individuales de Desempeño</strong></p>
-        <p style="font-size: 0.8rem; margin-top: 0.1rem; color: var(--muted-color);">Supervisor: ${state.currentUser.nombre} | Fecha de Emisión: ${new Date().toLocaleDateString()}</p>
+        <p style="font-size: 0.8rem; margin-top: 0.1rem; color: var(--muted-color);">${isAdmin ? 'Administrador' : 'Supervisor'}: ${state.currentUser.nombre} | Fecha de Emisión: ${new Date().toLocaleDateString()}</p>
       </div>
     </div>
   `;
