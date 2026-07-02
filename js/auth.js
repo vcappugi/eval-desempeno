@@ -3,13 +3,43 @@ import { showToast, openModal, closeModal, handleRlsError } from './utils.js';
 import { loadCaches } from './supabase.js';
 import { switchView } from './views.js';
 
-export function checkSession() {
+export async function checkSession() {
   const savedUser = localStorage.getItem('sessionUser') || sessionStorage.getItem('sessionUser');
   if (savedUser) {
     try {
-      state.currentUser = JSON.parse(savedUser);
-      loginSuccess(state.currentUser);
+      const parsedUser = JSON.parse(savedUser);
+      if (parsedUser && parsedUser.session_token) {
+        // Verificar token de sesión con el servidor
+        const { data, error } = await state.supabaseClient
+          .rpc('verify_worker_session', {
+            p_session_token: parsedUser.session_token
+          });
+          
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          throw new Error("Sesión inválida o expirada en el servidor.");
+        }
+        
+        state.currentUser = data[0];
+        
+        // Actualizar sesión guardada
+        const userString = JSON.stringify(state.currentUser);
+        if (localStorage.getItem('sessionUser')) {
+          localStorage.setItem('sessionUser', userString);
+        } else {
+          sessionStorage.setItem('sessionUser', userString);
+        }
+        
+        loginSuccess(state.currentUser);
+      } else {
+        throw new Error("No hay token de sesión en la sesión guardada.");
+      }
     } catch (e) {
+      console.error("Session verification failed:", e);
+      if (e && (e.code === 'PGRST202' || (e.message && e.message.includes('verify_worker_session')))) {
+        showToast("Error de seguridad: Por favor ejecute el script SQL 'db_security_setup.sql' actualizado en su editor SQL de Supabase para dar soporte a la validación de sesiones.", "error", 12000);
+      }
       localStorage.removeItem('sessionUser');
       sessionStorage.removeItem('sessionUser');
       showLoginView();
@@ -98,7 +128,17 @@ export function loginSuccess(user) {
   });
 }
 
-export function handleLogout() {
+export async function handleLogout() {
+  if (state.currentUser && state.currentUser.session_token) {
+    try {
+      await state.supabaseClient.rpc('revoke_worker_session', {
+        p_session_token: state.currentUser.session_token
+      });
+    } catch (e) {
+      console.error("Error revoking session on server:", e);
+    }
+  }
+  
   state.currentUser = null;
   localStorage.removeItem('sessionUser');
   sessionStorage.removeItem('sessionUser');
