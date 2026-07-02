@@ -23,7 +23,7 @@ export async function loadCaches() {
     while (hasMore) {
       const workersRes = await state.supabaseClient
         .from('trabajador')
-        .select('*')
+        .select('id, ficha, cedula, nombre, empresa, departamento, cargo, rol, usuario, supervisor_id, created_at')
         .order('nombre')
         .range(from, to);
       if (workersRes.error) throw workersRes.error;

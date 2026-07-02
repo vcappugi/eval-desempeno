@@ -35,11 +35,12 @@ export async function handleLogin(event) {
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
   
   try {
-    // Buscar en la tabla 'trabajador' por usuario o cédula
+    // Verificar credenciales usando la función RPC en Supabase (Servidor)
     const { data, error } = await state.supabaseClient
-      .from('trabajador')
-      .select('*')
-      .or(`usuario.eq."${usernameInput}",cedula.eq."${usernameInput}"`);
+      .rpc('verify_worker_credentials', {
+        p_username: usernameInput,
+        p_password: passwordInput
+      });
       
     if (error) throw error;
     
@@ -48,17 +49,9 @@ export async function handleLogin(event) {
       return;
     }
     
-    const user = data[0];
+    state.currentUser = data[0];
     
-    // Verificar contraseña (clave)
-    if (user.clave !== passwordInput) {
-      showToast("Usuario o contraseña incorrectos.", "error");
-      return;
-    }
-    
-    state.currentUser = user;
-    
-    // Guardar sesión
+    // Guardar sesión (excluyendo la contraseña, que no viene de la BD)
     const userString = JSON.stringify(state.currentUser);
     if (rememberMe) {
       localStorage.setItem('sessionUser', userString);
@@ -142,11 +135,6 @@ export async function saveNewPassword(event) {
     return;
   }
   
-  if (currentPassword !== state.currentUser.clave) {
-    showToast("La contraseña anterior es incorrecta.", "error");
-    return;
-  }
-  
   if (newPassword !== confirmPassword) {
     showToast("La nueva contraseña y su confirmación no coinciden.", "error");
     return;
@@ -162,22 +150,22 @@ export async function saveNewPassword(event) {
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Actualizando...';
   
   try {
-    const { data, error } = await state.supabaseClient
-      .from('trabajador')
-      .update({ clave: newPassword })
-      .eq('id', state.currentUser.id)
-      .select();
-      
-    console.log("Supabase response:", { data, error });
+    // Actualizar la contraseña en el servidor mediante la función RPC
+    const { data: isUpdated, error } = await state.supabaseClient
+      .rpc('change_worker_password', {
+        p_worker_id: state.currentUser.id,
+        p_old_password: currentPassword,
+        p_new_password: newPassword
+      });
       
     if (error) throw error;
     
-    if (!data || data.length === 0) {
-      throw new Error("No se pudo actualizar la contraseña en la base de datos (0 filas afectadas).");
+    if (!isUpdated) {
+      showToast("La contraseña anterior es incorrecta.", "error");
+      return;
     }
     
-    // Update local state and sessions
-    state.currentUser.clave = newPassword;
+    // Actualizar estado de sesión local
     const userString = JSON.stringify(state.currentUser);
     if (localStorage.getItem('sessionUser')) {
       localStorage.setItem('sessionUser', userString);
@@ -188,7 +176,7 @@ export async function saveNewPassword(event) {
     showToast("Contraseña actualizada correctamente.");
     closeModal('passwordModal');
     
-    // Reload caches so that worker list / admin panel has the new password too
+    // Recargar cachés
     await loadCaches();
   } catch (err) {
     console.error("Error updating password:", err);
