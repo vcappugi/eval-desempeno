@@ -27,7 +27,7 @@ import {
   openFechaEvalModal,
   saveFechaEval
 } from './admin.js';
-import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados } from './reports.js';
+import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange } from './reports.js';
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
@@ -97,3 +97,4 @@ window.saveFechaEval = saveFechaEval;
 window.showWorkerChartModal = showWorkerChartModal;
 window.renderReporteSubordinados = renderReporteSubordinados;
 window.printReporteSubordinados = printReporteSubordinados;
+window.handleReportDeptChange = handleReportDeptChange;

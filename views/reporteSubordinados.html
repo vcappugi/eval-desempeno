@@ -19,6 +19,15 @@
     <!-- Filter Controls -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; align-items: end;">
       <div>
+        <label for="repFiltroDepartamento" style="margin-bottom: 0;">
+          Seleccionar Departamento
+          <select id="repFiltroDepartamento" onchange="handleReportDeptChange()" style="margin-bottom: 0;">
+            <option value="todos">Todos los departamentos</option>
+            <!-- Populated dynamically -->
+          </select>
+        </label>
+      </div>
+      <div>
         <label for="repFiltroSubordinado" style="margin-bottom: 0;">
           Seleccionar Trabajador
           <select id="repFiltroSubordinado" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">

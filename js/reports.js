@@ -381,11 +381,50 @@ export async function showWorkerChartModal(workerId) {
 // ================= INFORME INDIVIDUAL DE SUBORDINADOS =================
 
 export function initReporteSubordinadosFilters() {
-  const select = document.getElementById('repFiltroSubordinado');
-  if (!select) return;
+  const selectDept = document.getElementById('repFiltroDepartamento');
+  const selectSub = document.getElementById('repFiltroSubordinado');
+  if (!selectSub) return;
   
-  const currentVal = select.value || 'todos';
   const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
+  const subordinados = isAdmin
+    ? state.workersCache
+    : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
+  
+  // 1. Poblar departamentos
+  if (selectDept) {
+    const currentDeptVal = selectDept.value || 'todos';
+    const departamentos = [...new Set(subordinados.map(s => s.departamento).filter(Boolean))].sort();
+    let deptHtml = '<option value="todos">Todos los departamentos</option>';
+    departamentos.forEach(d => {
+      deptHtml += `<option value="${d}">${d}</option>`;
+    });
+    selectDept.innerHTML = deptHtml;
+    selectDept.value = currentDeptVal;
+  }
+  
+  // 2. Poblar trabajadores según el departamento seleccionado
+  const selectedDept = selectDept ? selectDept.value : 'todos';
+  let workersForSelect = subordinados;
+  if (selectedDept !== 'todos') {
+    workersForSelect = subordinados.filter(s => s.departamento === selectedDept);
+  }
+  
+  const currentSubVal = selectSub.value || 'todos';
+  let html = isAdmin
+    ? '<option value="todos">Todos los trabajadores</option>'
+    : '<option value="todos">Todos los subordinados</option>';
+  workersForSelect.forEach(s => {
+    html += `<option value="${s.id}">${s.nombre} (Ficha: ${s.ficha || 'N/A'})</option>`;
+  });
+  
+  selectSub.innerHTML = html;
+  
+  // Mantener selección previa de trabajador si sigue existiendo en el nuevo conjunto
+  if (workersForSelect.some(s => s.id.toString() === currentSubVal) || currentSubVal === 'todos') {
+    selectSub.value = currentSubVal;
+  } else {
+    selectSub.value = 'todos';
+  }
   
   // Actualizar textos de cabecera en reportes según el rol
   const headerTitle = document.getElementById('reporteSubordinadosHeaderTitle');
@@ -399,20 +438,35 @@ export function initReporteSubordinadosFilters() {
       headerDesc.textContent = 'Genere y exporte el informe de indicadores individuales del personal a su cargo.';
     }
   }
+}
+
+export function handleReportDeptChange() {
+  const selectDept = document.getElementById('repFiltroDepartamento');
+  const selectSub = document.getElementById('repFiltroSubordinado');
+  if (!selectSub) return;
   
+  const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
   const subordinados = isAdmin
     ? state.workersCache
     : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
+  const selectedDept = selectDept ? selectDept.value : 'todos';
+  let workersForSelect = subordinados;
+  if (selectedDept !== 'todos') {
+    workersForSelect = subordinados.filter(s => s.departamento === selectedDept);
+  }
+  
   let html = isAdmin
     ? '<option value="todos">Todos los trabajadores</option>'
     : '<option value="todos">Todos los subordinados</option>';
-  subordinados.forEach(s => {
+  workersForSelect.forEach(s => {
     html += `<option value="${s.id}">${s.nombre} (Ficha: ${s.ficha || 'N/A'})</option>`;
   });
   
-  select.innerHTML = html;
-  select.value = currentVal;
+  selectSub.innerHTML = html;
+  selectSub.value = 'todos'; // Restablecer a todos al cambiar de departamento
+  
+  renderReporteSubordinados();
 }
 
 export function renderReporteSubordinados() {
@@ -439,14 +493,22 @@ export function renderReporteSubordinados() {
     return;
   }
   
+  const selectedDept = document.getElementById('repFiltroDepartamento')?.value || 'todos';
   const selectedSubId = document.getElementById('repFiltroSubordinado')?.value || 'todos';
   const dateDesde = document.getElementById('repFiltroFechaDesde')?.value || '';
   const dateHasta = document.getElementById('repFiltroFechaHasta')?.value || '';
   
   let filteredSubordinados = subordinados;
+  
+  // 1. Filtrar por departamento primero si se seleccionó uno específico
+  if (selectedDept !== 'todos') {
+    filteredSubordinados = filteredSubordinados.filter(s => s.departamento === selectedDept);
+  }
+  
+  // 2. Filtrar por trabajador específico
   if (selectedSubId !== 'todos') {
     const subIdNum = parseInt(selectedSubId);
-    filteredSubordinados = subordinados.filter(s => s.id === subIdNum);
+    filteredSubordinados = filteredSubordinados.filter(s => s.id === subIdNum);
   }
   
   let totalTeamScore = 0;
