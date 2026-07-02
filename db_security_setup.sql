@@ -18,7 +18,18 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT t.id, t.ficha, t.cedula, t.nombre, t.empresa, t.departamento, t.cargo, t.rol, t.usuario, t.supervisor_id, t.created_at
+  SELECT 
+    t.id::bigint, 
+    t.ficha::text, 
+    t.cedula::text, 
+    t.nombre::text, 
+    t.empresa::text, 
+    t.departamento::text, 
+    t.cargo::text, 
+    t.rol::text, 
+    t.usuario::text, 
+    t.supervisor_id::bigint, 
+    t.created_at::timestamp with time zone
   FROM public.trabajador t
   WHERE (t.usuario = p_username OR t.cedula = p_username)
     AND t.clave = p_password
