@@ -64,7 +64,11 @@ export async function handleLogin(event) {
     
   } catch (err) {
     console.error("Login error:", err);
-    showToast("Error en el servidor de base de datos.", "error");
+    if (err && (err.code === 'PGRST202' || (err.message && err.message.includes('verify_worker_credentials')))) {
+      showToast("Error: La función 'verify_worker_credentials' no existe en Supabase. Debe ejecutar el script SQL 'db_security_setup.sql' en Supabase SQL Editor.", "error", 12000);
+    } else {
+      showToast("Error en el servidor de base de datos.", "error");
+    }
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Iniciar Sesión';
@@ -180,7 +184,11 @@ export async function saveNewPassword(event) {
     await loadCaches();
   } catch (err) {
     console.error("Error updating password:", err);
-    showToast(err.message || "Error al actualizar la contraseña.", "error");
+    if (err && (err.code === 'PGRST202' || (err.message && err.message.includes('change_worker_password')))) {
+      showToast("Error: La función 'change_worker_password' no existe en Supabase. Debe ejecutar el script SQL 'db_security_setup.sql' en Supabase SQL Editor.", "error", 12000);
+    } else {
+      showToast(err.message || "Error al actualizar la contraseña.", "error");
+    }
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
