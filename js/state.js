@@ -7,6 +7,9 @@ export const state = {
   workersCurrentPage: 1,
   workersPerPage: 20,
   workersSearchQuery: '',
+  evalsCurrentPage: 1,
+  evalsPerPage: 20,
+  evalsSearchQuery: '',
   
   // Cachés de Datos de la Base de Datos
   workersCache: [],

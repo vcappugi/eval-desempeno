@@ -27,6 +27,13 @@ export async function switchView(viewName) {
     await ensureTemplateLoaded('viewEvaluaciones', 'views/evaluaciones.html', 'viewsContainer');
     document.getElementById('viewEvaluaciones').style.display = 'block';
     hideOtherViews('viewEvaluaciones');
+    
+    // Resetear filtros al ingresar a la vista
+    state.evalsSearchQuery = '';
+    state.evalsCurrentPage = 1;
+    const searchInput = document.getElementById('searchEvalWorkerInput');
+    if (searchInput) searchInput.value = '';
+    
     renderSubordinados();
     closeEvaluationForm();
   } else if (viewName === 'indicadores') {

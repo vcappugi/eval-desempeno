@@ -4,6 +4,11 @@
     <h2 id="evaluacionesHeaderTitle"><i class="fa-solid fa-users-gear text-primary"></i> Personal a su Cargo</h2>
     <p id="evaluacionesHeaderDesc">Seleccione el trabajador que desea evaluar. Solo se muestran los trabajadores bajo su supervisión directa.</p>
     
+    <!-- Search Bar -->
+    <div style="margin-bottom: 1rem;">
+      <input type="search" id="searchEvalWorkerInput" placeholder="🔍 Buscar por nombre, cédula o departamento..." oninput="handleEvalWorkerSearch(this.value)" style="margin-bottom: 0;">
+    </div>
+    
     <div class="table-wrapper">
       <table>
         <thead>
@@ -20,6 +25,24 @@
           <!-- Subordinados populated here -->
         </tbody>
       </table>
+    </div>
+    
+    <!-- Pagination Controls -->
+    <div id="evalsPaginationContainer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 1rem;">
+      <div style="font-size: 0.875rem; color: var(--muted-color);">
+        Mostrando <span id="evalsShowingRange">0-0</span> de <span id="evalsTotalCount">0</span> trabajadores
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button id="btnPrevEvalsPage" class="outline secondary" style="padding: 0.25rem 0.75rem; margin-bottom: 0;" onclick="changeEvalsPage(-1)">
+          <i class="fa-solid fa-chevron-left"></i> Anterior
+        </button>
+        <span style="font-size: 0.875rem; font-weight: 600; padding: 0 0.5rem;">
+          Página <span id="evalsCurrentPageLabel">1</span> de <span id="evalsTotalPagesLabel">1</span>
+        </span>
+        <button id="btnNextEvalsPage" class="outline secondary" style="padding: 0.25rem 0.75rem; margin-bottom: 0;" onclick="changeEvalsPage(1)">
+          Siguiente <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
     </div>
   </div>
   

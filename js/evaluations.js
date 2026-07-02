@@ -31,16 +31,60 @@ export function renderSubordinados() {
     ? state.workersCache
     : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
-  if (subordinados.length === 0) {
-    const emptyMsg = isAdmin
-      ? 'No hay trabajadores registrados en el sistema.'
-      : 'Usted no tiene trabajadores registrados bajo su supervisión directa.';
+  // Filtrar según el término de búsqueda (nombre, cédula o departamento)
+  let filtered = subordinados;
+  if (state.evalsSearchQuery) {
+    const q = state.evalsSearchQuery.toLowerCase();
+    filtered = subordinados.filter(w => 
+      (w.nombre && w.nombre.toLowerCase().includes(q)) ||
+      (w.cedula && w.cedula.toLowerCase().includes(q)) ||
+      (w.departamento && w.departamento.toLowerCase().includes(q))
+    );
+  }
+  
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / state.evalsPerPage));
+  
+  if (state.evalsCurrentPage > totalPages) {
+    state.evalsCurrentPage = totalPages;
+  }
+  
+  const startIndex = (state.evalsCurrentPage - 1) * state.evalsPerPage;
+  const endIndex = Math.min(startIndex + state.evalsPerPage, total);
+  
+  // Actualizar controles de interfaz de paginación
+  const rangeLabel = document.getElementById('evalsShowingRange');
+  const totalLabel = document.getElementById('evalsTotalCount');
+  const curPageLabel = document.getElementById('evalsCurrentPageLabel');
+  const totPagesLabel = document.getElementById('evalsTotalPagesLabel');
+  const prevBtn = document.getElementById('btnPrevEvalsPage');
+  const nextBtn = document.getElementById('btnNextEvalsPage');
+  
+  if (rangeLabel) rangeLabel.textContent = total === 0 ? '0' : `${startIndex + 1}-${endIndex}`;
+  if (totalLabel) totalLabel.textContent = total;
+  if (curPageLabel) curPageLabel.textContent = state.evalsCurrentPage;
+  if (totPagesLabel) totPagesLabel.textContent = totalPages;
+  
+  if (prevBtn) prevBtn.disabled = state.evalsCurrentPage === 1;
+  if (nextBtn) nextBtn.disabled = state.evalsCurrentPage === totalPages;
+  
+  const paginationContainer = document.getElementById('evalsPaginationContainer');
+  if (paginationContainer) {
+    paginationContainer.style.display = total === 0 ? 'none' : 'flex';
+  }
+  
+  const pageWorkers = filtered.slice(startIndex, endIndex);
+  
+  if (pageWorkers.length === 0) {
+    const emptyMsg = state.evalsSearchQuery
+      ? 'No se encontraron trabajadores que coincidan con la búsqueda.'
+      : (isAdmin ? 'No hay trabajadores registrados en el sistema.' : 'Usted no tiene trabajadores registrados bajo su supervisión directa.');
     tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">${emptyMsg}</td></tr>`;
     return;
   }
   
   let html = '';
-  subordinados.forEach(s => {
+  pageWorkers.forEach(s => {
     // Buscar si este subordinado tiene alguna evaluación en la caché para pintar el botón del gráfico
     const tieneEvaluaciones = state.evaluationsCache.some(ev => {
       try {
@@ -72,6 +116,17 @@ export function renderSubordinados() {
     `;
   });
   tbody.innerHTML = html;
+}
+
+export function handleEvalWorkerSearch(query) {
+  state.evalsSearchQuery = query.trim();
+  state.evalsCurrentPage = 1;
+  renderSubordinados();
+}
+
+export function changeEvalsPage(direction) {
+  state.evalsCurrentPage += direction;
+  renderSubordinados();
 }
 
 export function startEvaluation(trabajadorId) {
