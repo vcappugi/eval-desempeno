@@ -6,44 +6,62 @@ import { populateSupervisorSelects, populateCompetenciasSelects } from './admin.
 
 export async function initSupabase() {
   try {
-    const res = await fetch('.env');
-    if (!res.ok) {
-      throw new Error(`No se pudo cargar el archivo .env (HTTP ${res.status})`);
-    }
-    const text = await res.text();
+    let url = '';
+    let anonKey = '';
     
-    // Parsear líneas del archivo .env
-    const config = {};
-    text.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) return;
-      const idx = trimmed.indexOf('=');
-      if (idx === -1) return;
-      const key = trimmed.substring(0, idx).trim();
-      let value = trimmed.substring(idx + 1).trim();
-      // Remover comillas simples o dobles alrededor del valor
-      if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
-        value = value.substring(1, value.length - 1);
+    // 1. Intentar obtener la configuración desde la API Serverless de Vercel (Producción)
+    try {
+      const res = await fetch('api/config');
+      if (res.ok) {
+        const config = await res.json();
+        url = config.SUPABASE_URL || '';
+        anonKey = config.SUPABASE_ANON_KEY || '';
       }
-      config[key] = value;
-    });
+    } catch (e) {
+      console.warn("No se pudo obtener la configuración desde /api/config, intentando con .env local...", e);
+    }
+    
+    // 2. Fallback: Si no se obtuvo de la API (Desarrollo Local), leer el archivo .env
+    if (!url || !anonKey) {
+      const res = await fetch('.env');
+      if (!res.ok) {
+        throw new Error(`No se pudo cargar el archivo .env (HTTP ${res.status})`);
+      }
+      const text = await res.text();
+      
+      const config = {};
+      text.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const idx = trimmed.indexOf('=');
+        if (idx === -1) return;
+        const key = trimmed.substring(0, idx).trim();
+        let value = trimmed.substring(idx + 1).trim();
+        // Remover comillas del valor si existen
+        if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+          value = value.substring(1, value.length - 1);
+        }
+        config[key] = value;
+      });
+      
+      url = config.API_URL || config.SUPABASE_URL || '';
+      anonKey = config.ANON_KEY || config.SUPABASE_ANON_KEY || '';
+    }
     
     // Si viene como API_URL (formato Supabase REST), extraer la URL base
-    let url = config.API_URL || config.SUPABASE_URL || '';
     if (url.endsWith('/rest/v1')) {
       url = url.substring(0, url.length - 8);
     }
-    const anonKey = config.ANON_KEY || config.SUPABASE_ANON_KEY || '';
     
     if (!url || !anonKey) {
-      throw new Error("Variables API_URL/SUPABASE_URL o ANON_KEY/SUPABASE_ANON_KEY no encontradas en .env");
+      throw new Error("Variables de conexión de Supabase (URL / ANON_KEY) no encontradas.");
     }
     
     // Utiliza el objeto global 'supabase' inyectado por el CDN
     state.supabaseClient = supabase.createClient(url, anonKey);
   } catch (err) {
     console.error("Error al inicializar Supabase:", err);
-    showToast("Error al inicializar la base de datos (verifique el archivo .env).", "error");
+    showToast("Error al inicializar la base de datos (verifique la configuración).", "error");
     throw err;
   }
 }
