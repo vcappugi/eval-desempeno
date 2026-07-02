@@ -625,25 +625,23 @@ export function renderReporteSubordinados() {
       // Promediar los promedios ponderados de cada subordinado para el equipo
       totalTeamScore += avgNum;
       totalTeamCount++;
-      
-      // Acumular los promedios ponderados por competencia de este subordinado para el promedio del equipo
-      state.classesCache.forEach(c => {
-        const weightedSuma = subCompWeightedSuma[c.id] || 0;
-        const weightSum = subCompWeightSum[c.id] || 0;
-        const unweightedSuma = subCompUnweightedSuma[c.id] || 0;
-        const cuenta = subCompCuenta[c.id] || 0;
-        const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (cuenta > 0 ? (unweightedSuma / cuenta) : null);
-        
-        if (promedio !== null) {
-          if (!teamCompSuma[c.id]) {
-            teamCompSuma[c.id] = 0;
-            teamCompCuenta[c.id] = 0;
-          }
-          teamCompSuma[c.id] += promedio;
-          teamCompCuenta[c.id]++;
-        }
-      });
     }
+    
+    // Acumular los promedios ponderados por competencia de este subordinado para el promedio del equipo (los no evaluados cuentan como 0)
+    state.classesCache.forEach(c => {
+      const weightedSuma = subCompWeightedSuma[c.id] || 0;
+      const weightSum = subCompWeightSum[c.id] || 0;
+      const unweightedSuma = subCompUnweightedSuma[c.id] || 0;
+      const cuenta = subCompCuenta[c.id] || 0;
+      const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (cuenta > 0 ? (unweightedSuma / cuenta) : 0);
+      
+      if (!teamCompSuma[c.id]) {
+        teamCompSuma[c.id] = 0;
+        teamCompCuenta[c.id] = 0;
+      }
+      teamCompSuma[c.id] += promedio;
+      teamCompCuenta[c.id]++;
+    });
     
     statusCounts[nivelDesempeno]++;
     workerSummaries.push({
@@ -857,8 +855,8 @@ export function renderReporteSubordinados() {
     `;
   });
   
-  const promedioEquipo = totalTeamCount > 0 ? (totalTeamScore / totalTeamCount) : 0;
-  const promedioEquipoLabel = totalTeamCount > 0 ? promedioEquipo.toFixed(1) : 'N/A';
+  const promedioEquipo = filteredSubordinados.length > 0 ? (totalTeamScore / filteredSubordinados.length) : 0;
+  const promedioEquipoLabel = filteredSubordinados.length > 0 ? promedioEquipo.toFixed(1) : '0.0';
   // Ajuste: las personas no evaluadas suman cero y participan en la efectividad dividiendo por el total de subordinados/trabajadores del departamento
   const efectividadEquipo = filteredSubordinados.length > 0
     ? Math.round(((totalTeamScore / filteredSubordinados.length) / 4) * 100)
