@@ -30,18 +30,22 @@ import {
 import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange } from './reports.js';
 
 // Inicialización de la aplicación al cargar el DOM
-document.addEventListener("DOMContentLoaded", () => {
-  // Inicializar cliente de Supabase
-  initSupabase();
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    // Inicializar cliente de Supabase cargando .env dinámicamente
+    await initSupabase();
 
-  // Inicializar tema guardado
-  initTheme();
-  
-  // Verificar sesión existente
-  checkSession();
-  
-  // Registrar eventos estáticos globales en el DOM cargado
-  document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+    // Inicializar tema guardado
+    initTheme();
+    
+    // Verificar sesión existente
+    await checkSession();
+    
+    // Registrar eventos estáticos globales en el DOM cargado
+    document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+  } catch (err) {
+    console.error("Error crítico de inicialización de aplicación:", err);
+  }
 });
 
 // Vincular funciones a Window para soportar invocaciones en atributos inline del HTML

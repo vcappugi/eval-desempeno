@@ -4,12 +4,48 @@ import { state } from './state.js';
 import { showToast } from './utils.js';
 import { populateSupervisorSelects, populateCompetenciasSelects } from './admin.js';
 
-export function initSupabase() {
-  const SUPABASE_URL = "https://qpyjdbchqbegqacurcdp.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_OfcpnM3O1aZl2mC1GL1_aA_wBltlze2";
-  
-  // Utiliza el objeto global 'supabase' inyectado por el CDN
-  state.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export async function initSupabase() {
+  try {
+    const res = await fetch('.env');
+    if (!res.ok) {
+      throw new Error(`No se pudo cargar el archivo .env (HTTP ${res.status})`);
+    }
+    const text = await res.text();
+    
+    // Parsear líneas del archivo .env
+    const config = {};
+    text.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const idx = trimmed.indexOf('=');
+      if (idx === -1) return;
+      const key = trimmed.substring(0, idx).trim();
+      let value = trimmed.substring(idx + 1).trim();
+      // Remover comillas simples o dobles alrededor del valor
+      if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+        value = value.substring(1, value.length - 1);
+      }
+      config[key] = value;
+    });
+    
+    // Si viene como API_URL (formato Supabase REST), extraer la URL base
+    let url = config.API_URL || config.SUPABASE_URL || '';
+    if (url.endsWith('/rest/v1')) {
+      url = url.substring(0, url.length - 8);
+    }
+    const anonKey = config.ANON_KEY || config.SUPABASE_ANON_KEY || '';
+    
+    if (!url || !anonKey) {
+      throw new Error("Variables API_URL/SUPABASE_URL o ANON_KEY/SUPABASE_ANON_KEY no encontradas en .env");
+    }
+    
+    // Utiliza el objeto global 'supabase' inyectado por el CDN
+    state.supabaseClient = supabase.createClient(url, anonKey);
+  } catch (err) {
+    console.error("Error al inicializar Supabase:", err);
+    showToast("Error al inicializar la base de datos (verifique el archivo .env).", "error");
+    throw err;
+  }
 }
 
 // Cargar catálogos en caché
