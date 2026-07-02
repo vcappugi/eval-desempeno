@@ -859,7 +859,10 @@ export function renderReporteSubordinados() {
   
   const promedioEquipo = totalTeamCount > 0 ? (totalTeamScore / totalTeamCount) : 0;
   const promedioEquipoLabel = totalTeamCount > 0 ? promedioEquipo.toFixed(1) : 'N/A';
-  const efectividadEquipo = promedioEquipo > 0 ? Math.round((promedioEquipo / 4) * 100) : 0;
+  // Ajuste: las personas no evaluadas suman cero y participan en la efectividad dividiendo por el total de subordinados/trabajadores del departamento
+  const efectividadEquipo = filteredSubordinados.length > 0
+    ? Math.round(((totalTeamScore / filteredSubordinados.length) / 4) * 100)
+    : 0;
   
   htmlContent += `
     <article class="premium-card subordinate-report-card summary-report-card" style="margin-top: 3rem; page-break-before: always; break-before: page;">
