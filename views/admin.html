@@ -96,6 +96,25 @@
         </button>
       </div>
       
+      <!-- Filtros de Aspectos -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <label for="filterAspectoCompetencia" style="margin-bottom: 0;">
+          Filtrar por Competencia específica
+          <select id="filterAspectoCompetencia" onchange="renderAspectosCrud()" style="margin-bottom: 0;">
+            <option value="">Todas las competencias...</option>
+          </select>
+        </label>
+        
+        <label for="filterAspectoTipo" style="margin-bottom: 0;">
+          Filtrar por Tipo de Competencia
+          <select id="filterAspectoTipo" onchange="renderAspectosCrud()" style="margin-bottom: 0;">
+            <option value="">Todos los tipos...</option>
+            <option value="GERENCIAL">GERENCIAL</option>
+            <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+          </select>
+        </label>
+      </div>
+      
       <div class="table-wrapper">
         <table>
           <thead>

@@ -163,7 +163,7 @@ export function startEvaluation(trabajadorId) {
   document.getElementById('btnGuardarEvaluacion').disabled = false;
   
   // Renderizar formulario de competencias y aspectos
-  renderEvaluationFormQuestions();
+  renderEvaluationFormQuestions(t);
   
   // Verificar si ya existe evaluación para esta fecha
   checkEvaluationDateUnique();
@@ -178,14 +178,31 @@ export function closeEvaluationForm() {
   document.getElementById('subordinadosTableBody').closest('.premium-card').style.display = 'block';
 }
 
-export function renderEvaluationFormQuestions() {
+export function renderEvaluationFormQuestions(worker) {
   const container = document.getElementById('dynamicCompetenciesContainer');
   if (!container) return;
   
   container.innerHTML = '';
   
-  if (state.classesCache.length === 0) {
-    container.innerHTML = '<p class="text-error">No hay competencias registradas en el sistema para evaluar.</p>';
+  if (!worker) {
+    const trabajadorId = parseInt(document.getElementById('evaluadoIdInput').value);
+    worker = state.workersCache.find(w => w.id === trabajadorId);
+  }
+  
+  if (!worker) {
+    container.innerHTML = '<p class="text-error">No se encontró la información del trabajador.</p>';
+    return;
+  }
+  
+  const workerTipo = worker.tipo ? worker.tipo.toUpperCase().trim() : 'GERENCIAL';
+  
+  const matchingClasses = state.classesCache.filter(c => {
+    const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+    return compTipo === workerTipo;
+  });
+  
+  if (matchingClasses.length === 0) {
+    container.innerHTML = `<p class="text-error">No hay competencias de tipo "${workerTipo}" registradas en el sistema para evaluar a este trabajador.</p>`;
     return;
   }
   
@@ -201,7 +218,7 @@ export function renderEvaluationFormQuestions() {
   }
   
   // Agrupar aspectos por competencia (clase_id) ordenando por competencia y luego aspecto
-  state.classesCache.forEach(c => {
+  matchingClasses.forEach(c => {
     const aspectosDeClase = state.aspectsCache.filter(a => a.clase_id === c.id);
     
     // Solo renderizar la competencia si tiene aspectos de evaluación asociados

@@ -4,8 +4,9 @@
 -- Habilitar extensión pgcrypto para cifrado bcrypt
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 0. Agregar columna session_token si no existe
+-- 0. Agregar columnas session_token y tipo si no existen
 ALTER TABLE public.trabajador ADD COLUMN IF NOT EXISTS session_token TEXT;
+ALTER TABLE public.trabajador ADD COLUMN IF NOT EXISTS tipo TEXT;
 
 -- 1. Función para verificar credenciales de trabajador sin exponer contraseñas al cliente
 CREATE OR REPLACE FUNCTION verify_worker_credentials(p_username TEXT, p_password TEXT)
@@ -21,6 +22,7 @@ RETURNS TABLE (
   usuario TEXT,
   supervisor_id BIGINT,
   session_token TEXT,
+  tipo TEXT,
   created_at TIMESTAMP WITH TIME ZONE
 ) AS $$
 DECLARE
@@ -57,6 +59,7 @@ BEGIN
     t.usuario::text, 
     t.supervisor_id::bigint, 
     t.session_token::text,
+    t.tipo::text,
     t.created_at::timestamp with time zone
   FROM public.trabajador t
   WHERE t.id = v_worker_id;
@@ -77,6 +80,7 @@ RETURNS TABLE (
   usuario TEXT,
   supervisor_id BIGINT,
   session_token TEXT,
+  tipo TEXT,
   created_at TIMESTAMP WITH TIME ZONE
 ) AS $$
 BEGIN
@@ -93,6 +97,7 @@ BEGIN
     t.usuario::text, 
     t.supervisor_id::bigint, 
     t.session_token::text,
+    t.tipo::text,
     t.created_at::timestamp with time zone
   FROM public.trabajador t
   WHERE t.session_token = p_session_token

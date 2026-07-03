@@ -77,7 +77,7 @@ export async function loadCaches() {
     while (hasMore) {
       const workersRes = await state.supabaseClient
         .from('trabajador')
-        .select('id, ficha, cedula, nombre, empresa, departamento, cargo, rol, usuario, supervisor_id, created_at')
+        .select('id, ficha, cedula, nombre, empresa, departamento, cargo, rol, usuario, supervisor_id, created_at, tipo')
         .order('nombre')
         .range(from, to);
       if (workersRes.error) throw workersRes.error;
@@ -105,7 +105,7 @@ export async function loadCaches() {
     // Unir con competencias (clase) en memoria para evitar FK físicas en BD
     state.aspectsCache.forEach(a => {
       const parentClass = state.classesCache.find(c => c.id === a.clase_id);
-      a.clase = parentClass ? { titulo: parentClass.titulo } : null;
+      a.clase = parentClass ? { titulo: parentClass.titulo, tipo: parentClass.tipo } : null;
     });
     
     // 4. Evaluaciones

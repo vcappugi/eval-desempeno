@@ -35,7 +35,7 @@
         </label>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
         <label for="trabCargo">
           Cargo
           <input type="text" id="trabCargo" required>
@@ -47,29 +47,39 @@
             <!-- Populated with all workers -->
           </select>
         </label>
-      </div>
-
-      <hr style="margin: 1rem 0;">
-      <h5 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-key text-primary"></i> Credenciales de Acceso</h5>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <label for="trabUsuario">
-          Usuario
-          <input type="text" id="trabUsuario" placeholder="Opcional">
-        </label>
-        <label for="trabRol">
-          Rol en el Sistema
-          <select id="trabRol">
-            <option value="user">Usuario (Solo Evalúa)</option>
-            <option value="admin">Administrador (Acceso Completo)</option>
+        <label for="trabTipo">
+          Tipo de Personal
+          <select id="trabTipo" required onchange="handleTrabTipoChange()">
+            <option value="GERENCIAL">GERENCIAL</option>
+            <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
           </select>
         </label>
       </div>
 
-      <label for="trabClave">
-        Contraseña
-        <input type="password" id="trabClave" placeholder="Escriba la clave para este usuario">
-      </label>
+      <div id="credentialsSection">
+        <hr style="margin: 1rem 0;">
+        <h5 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-key text-primary"></i> Credenciales de Acceso</h5>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <label for="trabUsuario">
+            Usuario
+            <input type="text" id="trabUsuario" placeholder="Opcional">
+          </label>
+          <label for="trabRol">
+            Rol en el Sistema
+            <select id="trabRol">
+              <option value="user">Usuario (Solo Evalúa)</option>
+              <option value="admin">Administrador (Acceso Completo)</option>
+              <option value="">Sin acceso (No ingresa al sistema)</option>
+            </select>
+          </label>
+        </div>
+
+        <label for="trabClave">
+          Contraseña
+          <input type="password" id="trabClave" placeholder="Escriba la clave para este usuario">
+        </label>
+      </div>
       
       <footer style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
         <button type="button" class="outline secondary" onclick="closeModal('trabajadorModal')">Cancelar</button>

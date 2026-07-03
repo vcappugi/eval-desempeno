@@ -116,6 +116,33 @@ export async function handleWorkerSearch(query) {
   await renderTrabajadoresCrud();
 }
 
+export function handleTrabTipoChange() {
+  const tipo = document.getElementById('trabTipo').value;
+  const credsSection = document.getElementById('credentialsSection');
+  const userInp = document.getElementById('trabUsuario');
+  const claveInp = document.getElementById('trabClave');
+  const rolInp = document.getElementById('trabRol');
+  const isNew = !document.getElementById('trabajadorIdInput').value;
+  
+  if (tipo === 'ADMINISTRATIVO') {
+    if (credsSection) credsSection.style.display = 'none';
+    if (userInp) userInp.value = '';
+    if (claveInp) {
+      claveInp.value = '';
+      claveInp.required = false;
+    }
+    if (rolInp) rolInp.value = '';
+  } else {
+    if (credsSection) credsSection.style.display = 'block';
+    if (claveInp) {
+      claveInp.required = isNew;
+    }
+    if (rolInp && !rolInp.value) {
+      rolInp.value = 'user';
+    }
+  }
+}
+
 export async function openTrabajadorModal() {
   await openModal('trabajadorModal');
   populateSupervisorSelects();
@@ -124,6 +151,8 @@ export async function openTrabajadorModal() {
   document.getElementById('trabajadorIdInput').value = '';
   document.getElementById('trabajadorModalTitle').textContent = 'Agregar Trabajador';
   document.getElementById('trabClave').required = true;
+  
+  handleTrabTipoChange();
 }
 
 export async function editTrabajador(id) {
@@ -143,12 +172,15 @@ export async function editTrabajador(id) {
   document.getElementById('trabSupervisor').value = w.supervisor_id || '';
   document.getElementById('trabUsuario').value = w.usuario || '';
   document.getElementById('trabRol').value = w.rol || 'user';
+  document.getElementById('trabTipo').value = w.tipo || 'GERENCIAL';
   
   // Para editar, la clave no es obligatoria
   document.getElementById('trabClave').value = '';
   document.getElementById('trabClave').required = false;
   
   document.getElementById('trabajadorModalTitle').textContent = 'Modificar Trabajador';
+  
+  handleTrabTipoChange();
 }
 
 export async function saveTrabajador(event) {
@@ -163,6 +195,7 @@ export async function saveTrabajador(event) {
   const supervisor_id = document.getElementById('trabSupervisor').value || null;
   const usuario = document.getElementById('trabUsuario').value.trim() || null;
   const rol = document.getElementById('trabRol').value;
+  const tipo = document.getElementById('trabTipo').value;
   const clave = document.getElementById('trabClave').value;
   
   const payload = {
@@ -173,11 +206,14 @@ export async function saveTrabajador(event) {
     departamento,
     cargo,
     supervisor_id: supervisor_id ? parseInt(supervisor_id) : null,
-    usuario,
-    rol
+    usuario: tipo === 'ADMINISTRATIVO' ? null : (usuario || null),
+    rol: tipo === 'ADMINISTRATIVO' ? null : (rol || null),
+    tipo
   };
   
-  if (clave) {
+  if (tipo === 'ADMINISTRATIVO') {
+    payload.clave = null;
+  } else if (clave) {
     payload.clave = clave;
   }
   
@@ -260,6 +296,10 @@ export function renderCompetenciasCrud() {
           <p style="font-size: 0.875rem; margin-bottom: 0; color: var(--muted-color); text-align: justify;">
             ${c.descripcion || 'Sin descripción.'}
           </p>
+          <div style="margin-top: 0.75rem; font-size: 0.8rem; font-weight: 600; opacity: 0.85; display: flex; align-items: center; gap: 0.25rem; color: var(--primary);">
+            <i class="fa-solid fa-tags" style="font-size: 0.75rem;"></i>
+            <span>Tipo: <strong style="text-transform: uppercase;">${c.tipo || 'GERENCIAL'}</strong></span>
+          </div>
         </div>
         <div class="competencia-actions">
           <button class="outline secondary" style="padding: 0.25rem 0.5rem; flex: 1; font-size: 0.875rem; margin-bottom: 0;" onclick="editCompetencia(${c.id})">
@@ -364,13 +404,40 @@ export function renderAspectosCrud() {
   
   tbody.innerHTML = '';
   
-  if (state.aspectsCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay aspectos de evaluación registrados.</td></tr>';
+  // Poblar dinámicamente el filtro de competencias
+  const compSelect = document.getElementById('filterAspectoCompetencia');
+  if (compSelect) {
+    const selectedVal = compSelect.value;
+    compSelect.innerHTML = '<option value="">Todas las competencias...</option>';
+    state.classesCache.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.titulo} (${c.tipo || 'GERENCIAL'})`;
+      compSelect.appendChild(opt);
+    });
+    compSelect.value = selectedVal;
+  }
+  
+  const filterClaseId = compSelect ? compSelect.value : '';
+  const filterTipoSelect = document.getElementById('filterAspectoTipo');
+  const filterTipo = filterTipoSelect ? filterTipoSelect.value : '';
+  
+  // Filtrar cache de aspectos
+  let filteredAspects = state.aspectsCache;
+  if (filterClaseId) {
+    filteredAspects = filteredAspects.filter(a => String(a.clase_id) === String(filterClaseId));
+  }
+  if (filterTipo) {
+    filteredAspects = filteredAspects.filter(a => a.clase && a.clase.tipo === filterTipo);
+  }
+  
+  if (filteredAspects.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay aspectos de evaluación registrados para esta selección.</td></tr>';
     return;
   }
   
   let html = '';
-  state.aspectsCache.forEach(a => {
+  filteredAspects.forEach(a => {
     const claseTitulo = a.clase ? a.clase.titulo : `<span class="text-error">Desasociada (ID: ${a.clase_id})</span>`;
     let tipoBadge = '';
     if (a.tipo === 'rango1,4') tipoBadge = '<span class="badge">Rango 1-4</span>';
@@ -641,7 +708,7 @@ export function populateCompetenciasSelects() {
   const val = select.value;
   select.innerHTML = '<option value="">Seleccione una competencia...</option>';
   state.classesCache.forEach(c => {
-    select.innerHTML += `<option value="${c.id}">${c.titulo}</option>`;
+    select.innerHTML += `<option value="${c.id}">${c.titulo} (${c.tipo || 'GERENCIAL'})</option>`;
   });
   select.value = val;
 }

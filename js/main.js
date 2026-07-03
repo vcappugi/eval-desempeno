@@ -13,6 +13,7 @@ import {
   handleWorkerSearch,
   openTrabajadorModal,
   saveTrabajador,
+  handleTrabTipoChange,
   editCompetencia,
   deleteCompetencia,
   openCompetenciaModal,
@@ -21,6 +22,7 @@ import {
   deleteAspecto,
   openAspectoModal,
   saveAspecto,
+  renderAspectosCrud,
   toggleEvaluationStatus,
   editFechaEval,
   deleteFechaEval,
@@ -75,6 +77,7 @@ window.changeWorkersPage = changeWorkersPage;
 window.handleWorkerSearch = handleWorkerSearch;
 window.openTrabajadorModal = openTrabajadorModal;
 window.saveTrabajador = saveTrabajador;
+window.handleTrabTipoChange = handleTrabTipoChange;
 
 // CRUD Competencias
 window.editCompetencia = editCompetencia;
@@ -87,6 +90,7 @@ window.editAspecto = editAspecto;
 window.deleteAspecto = deleteAspecto;
 window.openAspectoModal = openAspectoModal;
 window.saveAspecto = saveAspecto;
+window.renderAspectosCrud = renderAspectosCrud;
 
 // Cierre de Evaluaciones
 window.toggleEvaluationStatus = toggleEvaluationStatus;

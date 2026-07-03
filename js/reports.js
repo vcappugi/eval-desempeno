@@ -627,8 +627,12 @@ export function renderReporteSubordinados() {
       totalTeamCount++;
     }
     
-    // Acumular los promedios ponderados por competencia de este subordinado para el promedio del equipo (los no evaluados cuentan como 0)
+    // Acumular los promedios ponderados por competencia de este subordinado para el promedio del equipo (los no evaluados cuentan como 0, y omitir si no corresponde al tipo)
     state.classesCache.forEach(c => {
+      const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+      const workerTipo = s.tipo ? s.tipo.toUpperCase().trim() : 'GERENCIAL';
+      if (compTipo !== workerTipo) return;
+
       const weightedSuma = subCompWeightedSuma[c.id] || 0;
       const weightSum = subCompWeightSum[c.id] || 0;
       const unweightedSuma = subCompUnweightedSuma[c.id] || 0;
@@ -694,7 +698,11 @@ export function renderReporteSubordinados() {
                   </tr>
                 </thead>
                 <tbody>
-                  ${state.classesCache.map(c => {
+                  ${state.classesCache.filter(c => {
+                    const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+                    const workerTipo = s.tipo ? s.tipo.toUpperCase().trim() : 'GERENCIAL';
+                    return compTipo === workerTipo;
+                  }).map(c => {
                     const weightedSuma = subCompWeightedSuma[c.id] || 0;
                     const weightSum = subCompWeightSum[c.id] || 0;
                     const unweightedSuma = subCompUnweightedSuma[c.id] || 0;
