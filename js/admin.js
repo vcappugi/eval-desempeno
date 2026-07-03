@@ -248,12 +248,19 @@ export function renderCompetenciasCrud() {
   
   let html = '';
   state.classesCache.forEach(c => {
+    const tipoColor = c.tipo === 'ADMINISTRATIVO'
+      ? 'background: hsla(280, 65%, 55%, 0.15); color: hsl(280, 65%, 45%);'
+      : 'background: hsla(210, 80%, 45%, 0.15); color: hsl(210, 80%, 40%);';
+      
     html += `
       <article class="premium-card competencia-card">
         <div>
           <div class="competencia-header">
             <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">${c.titulo}</h4>
-            <span class="competencia-badge">Orden: ${c.orden}</span>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <span class="competencia-badge" style="${tipoColor}">${c.tipo || 'GERENCIAL'}</span>
+              <span class="competencia-badge">Orden: ${c.orden}</span>
+            </div>
           </div>
           <p style="font-size: 0.875rem; margin-bottom: 0; color: var(--muted-color); text-align: justify;">
             ${c.descripcion || 'Sin descripción.'}
@@ -289,6 +296,7 @@ export async function editCompetencia(id) {
   document.getElementById('compTitulo').value = c.titulo || '';
   document.getElementById('compDescripcion').value = c.descripcion || '';
   document.getElementById('compOrden').value = c.orden || '';
+  document.getElementById('compTipo').value = c.tipo || 'GERENCIAL';
   
   document.getElementById('competenciaModalTitle').textContent = 'Modificar Competencia';
 }
@@ -299,8 +307,9 @@ export async function saveCompetencia(event) {
   const titulo = document.getElementById('compTitulo').value.trim();
   const descripcion = document.getElementById('compDescripcion').value.trim();
   const orden = parseInt(document.getElementById('compOrden').value);
+  const tipo = document.getElementById('compTipo').value;
   
-  const payload = { titulo, descripcion, orden };
+  const payload = { titulo, descripcion, orden, tipo };
   
   try {
     if (id) {
