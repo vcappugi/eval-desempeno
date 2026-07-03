@@ -248,19 +248,14 @@ export function renderCompetenciasCrud() {
   
   let html = '';
   state.classesCache.forEach(c => {
-    const tipoColor = c.tipo === 'ADMINISTRATIVO'
-      ? 'background: hsla(280, 65%, 55%, 0.15); color: hsl(280, 65%, 45%);'
-      : 'background: hsla(210, 80%, 45%, 0.15); color: hsl(210, 80%, 40%);';
+    const cardClass = c.tipo === 'ADMINISTRATIVO' ? 'card-administrativo' : 'card-gerencial';
       
     html += `
-      <article class="premium-card competencia-card">
+      <article class="premium-card competencia-card ${cardClass}">
         <div>
           <div class="competencia-header">
             <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">${c.titulo}</h4>
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
-              <span class="competencia-badge" style="${tipoColor}">${c.tipo || 'GERENCIAL'}</span>
-              <span class="competencia-badge">Orden: ${c.orden}</span>
-            </div>
+            <span class="competencia-badge">Orden: ${c.orden}</span>
           </div>
           <p style="font-size: 0.875rem; margin-bottom: 0; color: var(--muted-color); text-align: justify;">
             ${c.descripcion || 'Sin descripción.'}
