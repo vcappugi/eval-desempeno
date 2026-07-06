@@ -31,7 +31,10 @@
         </label>
         <label for="trabDepartamento">
           Departamento
-          <input type="text" id="trabDepartamento" required>
+          <select id="trabDepartamento" required onchange="handleTrabDepartamentoChange(this.value)">
+            <option value="">Seleccione un departamento...</option>
+            <!-- Populated dynamically -->
+          </select>
         </label>
       </div>
 

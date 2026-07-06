@@ -325,7 +325,7 @@ body {
 /* Rango de 1 a 5 con checks */
 .rango-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
   max-width: 500px;
   margin-top: 0.5rem;
@@ -467,7 +467,7 @@ tr th {
   }
   
   .rango-container {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
   
   .rango-option {
@@ -538,7 +538,7 @@ dialog article {
   background: var(--primary-focus);
 }
 
-/* REPORTE DE SUBORDINADOS */
+/* REPORTE DE COLABORADORES */
 .report-header {
   display: flex;
   align-items: center;
@@ -575,19 +575,19 @@ dialog article {
   color: var(--muted-color);
 }
 
-.subordinate-report-card {
+.colaborador-report-card {
   margin-bottom: 3rem;
   page-break-after: always;
   break-after: page;
 }
 
-.subordinate-report-card:last-child {
+.colaborador-report-card:last-child {
   page-break-after: avoid;
   break-after: avoid;
   margin-bottom: 0;
 }
 
-.subordinate-profile-grid {
+.colaborador-profile-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 1.5rem;
@@ -595,22 +595,22 @@ dialog article {
 }
 
 @media (max-width: 768px) {
-  .subordinate-profile-grid {
+  .colaborador-profile-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.subordinate-meta {
+.colaborador-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
 
-.subordinate-meta div {
+.colaborador-meta div {
   font-size: 0.9rem;
 }
 
-.subordinate-meta strong {
+.colaborador-meta strong {
   color: var(--contrast);
 }
 
@@ -787,7 +787,7 @@ dialog article {
     height: 50px !important;
   }
 
-  .subordinate-report-card {
+  .colaborador-report-card {
     page-break-before: always !important;
     break-before: page !important;
     page-break-after: always !important;
@@ -800,7 +800,7 @@ dialog article {
   }
 
   /* El primer reporte individual no necesita page-break-before ya que está al inicio */
-  .subordinate-report-card:first-of-type {
+  .colaborador-report-card:first-of-type {
     page-break-before: avoid !important;
     break-before: avoid !important;
   }
@@ -814,16 +814,16 @@ dialog article {
     margin-top: 0 !important;
   }
 
-  .subordinate-profile-grid {
+  .colaborador-profile-grid {
     gap: 1rem !important;
     margin-bottom: 1rem !important;
   }
 
-  .subordinate-meta {
+  .colaborador-meta {
     gap: 0.5rem !important;
   }
 
-  .subordinate-meta div {
+  .colaborador-meta div {
     font-size: 0.8rem !important;
   }
 

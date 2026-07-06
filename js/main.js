@@ -27,9 +27,16 @@ import {
   editFechaEval,
   deleteFechaEval,
   openFechaEvalModal,
-  saveFechaEval
+  saveFechaEval,
+  editDepartamento,
+  deleteDepartamento,
+  openDepartamentoModal,
+  saveDepartamento,
+  renderDepartamentosCrud,
+  handleTrabDepartamentoChange,
+  populateDepartamentosSelect
 } from './admin.js';
-import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange } from './reports.js';
+import { showWorkerChartModal, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange } from './reports.js';
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", async () => {
@@ -101,8 +108,17 @@ window.deleteFechaEval = deleteFechaEval;
 window.openFechaEvalModal = openFechaEvalModal;
 window.saveFechaEval = saveFechaEval;
 
+// CRUD Departamentos (Unidades Administrativas)
+window.editDepartamento = editDepartamento;
+window.deleteDepartamento = deleteDepartamento;
+window.openDepartamentoModal = openDepartamentoModal;
+window.saveDepartamento = saveDepartamento;
+window.renderDepartamentosCrud = renderDepartamentosCrud;
+window.handleTrabDepartamentoChange = handleTrabDepartamentoChange;
+window.populateDepartamentosSelect = populateDepartamentosSelect;
+
 // Reportes y Gráficos
 window.showWorkerChartModal = showWorkerChartModal;
-window.renderReporteSubordinados = renderReporteSubordinados;
-window.printReporteSubordinados = printReporteSubordinados;
+window.renderReporteColaboradores = renderReporteColaboradores;
+window.printReporteColaboradores = printReporteColaboradores;
 window.handleReportDeptChange = handleReportDeptChange;

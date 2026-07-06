@@ -1,12 +1,12 @@
-// js/evaluations.js - Formulario de evaluaciones y listado de subordinados
+// js/evaluations.js - Formulario de evaluaciones y listado de colaboradores
 
 import { state } from './state.js';
 import { safeParseJSON, showToast, handleRlsError } from './utils.js';
 import { loadCaches } from './supabase.js';
 import { showWorkerChartModal } from './reports.js';
 
-export function renderSubordinados() {
-  const tbody = document.getElementById('subordinadosTableBody');
+export function renderColaboradores() {
+  const tbody = document.getElementById('colaboradoresTableBody');
   if (!tbody) return;
   
   tbody.innerHTML = '';
@@ -27,15 +27,15 @@ export function renderSubordinados() {
   }
   
   // Buscar trabajadores bajo la supervisión directa del usuario actual (o todos si es admin)
-  const subordinados = isAdmin
+  const colaboradores = isAdmin
     ? state.workersCache
     : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
   // Filtrar según el término de búsqueda (nombre, cédula o departamento)
-  let filtered = subordinados;
+  let filtered = colaboradores;
   if (state.evalsSearchQuery) {
     const q = state.evalsSearchQuery.toLowerCase();
-    filtered = subordinados.filter(w => 
+    filtered = colaboradores.filter(w => 
       (w.nombre && w.nombre.toLowerCase().includes(q)) ||
       (w.cedula && w.cedula.toLowerCase().includes(q)) ||
       (w.departamento && w.departamento.toLowerCase().includes(q))
@@ -85,7 +85,7 @@ export function renderSubordinados() {
   
   let html = '';
   pageWorkers.forEach(s => {
-    // Buscar si este subordinado tiene alguna evaluación en la caché para pintar el botón del gráfico
+    // Buscar si este colaborador tiene alguna evaluación en la caché para pintar el botón del gráfico
     const tieneEvaluaciones = state.evaluationsCache.some(ev => {
       try {
         const parsed = safeParseJSON(ev.evaluacion);
@@ -121,12 +121,12 @@ export function renderSubordinados() {
 export function handleEvalWorkerSearch(query) {
   state.evalsSearchQuery = query.trim();
   state.evalsCurrentPage = 1;
-  renderSubordinados();
+  renderColaboradores();
 }
 
 export function changeEvalsPage(direction) {
   state.evalsCurrentPage += direction;
-  renderSubordinados();
+  renderColaboradores();
 }
 
 export function startEvaluation(trabajadorId) {
@@ -170,12 +170,12 @@ export function startEvaluation(trabajadorId) {
   
   // Mostrar formulario de evaluación y ocultar lista
   document.getElementById('evaluationFormContainer').style.display = 'block';
-  document.getElementById('subordinadosTableBody').closest('.premium-card').style.display = 'none';
+  document.getElementById('colaboradoresTableBody').closest('.premium-card').style.display = 'none';
 }
 
 export function closeEvaluationForm() {
   document.getElementById('evaluationFormContainer').style.display = 'none';
-  document.getElementById('subordinadosTableBody').closest('.premium-card').style.display = 'block';
+  document.getElementById('colaboradoresTableBody').closest('.premium-card').style.display = 'block';
 }
 
 export function renderEvaluationFormQuestions(worker) {
@@ -234,12 +234,25 @@ export function renderEvaluationFormQuestions(worker) {
         let answerFieldHTML = '';
         
         if (a.tipo === 'rango1,4') {
+          const tooltips = {
+            1: "Casi nunca presenta esta característica",
+            2: "Ocasionalmente presenta esta característica",
+            3: "Frecuentemente presenta esta característica",
+            4: "Siempre presenta esta característica"
+          };
+          const shortLabels = {
+            1: "Casi Nunca",
+            2: "Ocasionalmente",
+            3: "Frecuentemente",
+            4: "Siempre"
+          };
           answerFieldHTML = `
             <div class="rango-container" data-aspecto-id="${a.id}">
               ${[1,2,3,4].map(v => `
-                <label class="rango-option" id="label-asp-${a.id}-${v}" onclick="selectRangoOption(${a.id}, ${v})">
+                <label class="rango-option" id="label-asp-${a.id}-${v}" title="${tooltips[v]}" onclick="selectRangoOption(${a.id}, ${v})">
                   <input type="radio" name="aspecto_${a.id}" value="${v}" required>
-                  <span>${v}</span>
+                  <span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem; text-align: center; opacity: 0.8; word-break: break-word; line-height: 1.2;">${shortLabels[v]}</span>
+                  <span style="font-size: 1.25rem; font-weight: 700;">${v}</span>
                 </label>
               `).join('')}
             </div>
@@ -486,7 +499,7 @@ export async function saveEvaluation(event) {
     
     closeEvaluationForm();
     await loadCaches();
-    renderSubordinados();
+    renderColaboradores();
   } catch (err) {
     handleRlsError(err);
   }

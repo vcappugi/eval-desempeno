@@ -2,9 +2,9 @@
 
 import { state } from './state.js';
 import { ensureTemplateLoaded } from './utils.js';
-import { renderSubordinados, closeEvaluationForm } from './evaluations.js';
-import { renderIndicadoresGenerales, initReporteSubordinadosFilters, renderReporteSubordinados } from './reports.js';
-import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud } from './admin.js';
+import { renderColaboradores, closeEvaluationForm } from './evaluations.js';
+import { renderIndicadoresGenerales, initReporteColaboradoresFilters, renderReporteColaboradores } from './reports.js';
+import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud, renderDepartamentosCrud } from './admin.js';
 
 export async function switchView(viewName) {
   state.activeView = viewName;
@@ -13,7 +13,7 @@ export async function switchView(viewName) {
   const navLinks = {
     evaluaciones: 'navEvaluaciones',
     indicadores: 'navIndicadores',
-    reporteSubordinados: 'navReporteSubordinados',
+    reporteColaboradores: 'navReporteColaboradores',
     admin: 'navAdmin'
   };
   
@@ -34,19 +34,19 @@ export async function switchView(viewName) {
     const searchInput = document.getElementById('searchEvalWorkerInput');
     if (searchInput) searchInput.value = '';
     
-    renderSubordinados();
+    renderColaboradores();
     closeEvaluationForm();
   } else if (viewName === 'indicadores') {
     await ensureTemplateLoaded('viewIndicadores', 'views/indicadores.html', 'viewsContainer');
     document.getElementById('viewIndicadores').style.display = 'block';
     hideOtherViews('viewIndicadores');
     renderIndicadoresGenerales();
-  } else if (viewName === 'reporteSubordinados') {
-    await ensureTemplateLoaded('viewReporteSubordinados', 'views/reporteSubordinados.html', 'viewsContainer');
-    document.getElementById('viewReporteSubordinados').style.display = 'block';
-    hideOtherViews('viewReporteSubordinados');
-    initReporteSubordinadosFilters();
-    renderReporteSubordinados();
+  } else if (viewName === 'reporteColaboradores') {
+    await ensureTemplateLoaded('viewReporteColaboradores', 'views/reporteColaboradores.html', 'viewsContainer');
+    document.getElementById('viewReporteColaboradores').style.display = 'block';
+    hideOtherViews('viewReporteColaboradores');
+    initReporteColaboradoresFilters();
+    renderReporteColaboradores();
   } else if (viewName === 'admin' && state.currentUser.rol === 'admin') {
     await ensureTemplateLoaded('viewAdmin', 'views/admin.html', 'viewsContainer');
     document.getElementById('viewAdmin').style.display = 'block';
@@ -61,7 +61,7 @@ export async function switchView(viewName) {
 }
 
 function hideOtherViews(activeViewId) {
-  const views = ['viewEvaluaciones', 'viewIndicadores', 'viewReporteSubordinados', 'viewAdmin'];
+  const views = ['viewEvaluaciones', 'viewIndicadores', 'viewReporteColaboradores', 'viewAdmin'];
   views.forEach(v => {
     if (v !== activeViewId) {
       const el = document.getElementById(v);
@@ -87,6 +87,7 @@ export function switchAdminTab(tabName) {
   document.getElementById('adminTabAspectos').style.display = tabName === 'aspectos' ? 'block' : 'none';
   document.getElementById('adminTabCierre').style.display = tabName === 'cierre' ? 'block' : 'none';
   document.getElementById('adminTabFechas').style.display = tabName === 'fechas' ? 'block' : 'none';
+  document.getElementById('adminTabDepartamentos').style.display = tabName === 'departamentos' ? 'block' : 'none';
   
   // Renderizar información correspondiente
   if (tabName === 'trabajadores') renderTrabajadoresCrud();
@@ -94,6 +95,7 @@ export function switchAdminTab(tabName) {
   else if (tabName === 'aspectos') renderAspectosCrud();
   else if (tabName === 'cierre') renderCierreEvaluaciones();
   else if (tabName === 'fechas') renderFechasEvalCrud();
+  else if (tabName === 'departamentos') renderDepartamentosCrud();
 }
 
 export function toggleSidebar(forceState) {

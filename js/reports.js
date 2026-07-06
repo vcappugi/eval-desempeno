@@ -378,22 +378,22 @@ export async function showWorkerChartModal(workerId) {
   });
 }
 
-// ================= INFORME INDIVIDUAL DE SUBORDINADOS =================
+// ================= INFORME INDIVIDUAL DE COLABORADORES =================
 
-export function initReporteSubordinadosFilters() {
+export function initReporteColaboradoresFilters() {
   const selectDept = document.getElementById('repFiltroDepartamento');
-  const selectSub = document.getElementById('repFiltroSubordinado');
-  if (!selectSub) return;
+  const selectColab = document.getElementById('repFiltroColaborador');
+  if (!selectColab) return;
   
   const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
-  const subordinados = isAdmin
+  const colaboradores = isAdmin
     ? state.workersCache
     : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
   // 1. Poblar departamentos
   if (selectDept) {
     const currentDeptVal = selectDept.value || 'todos';
-    const departamentos = [...new Set(subordinados.map(s => s.departamento).filter(Boolean))].sort();
+    const departamentos = [...new Set(colaboradores.map(s => s.departamento).filter(Boolean))].sort();
     let deptHtml = '<option value="todos">Todos los departamentos</option>';
     departamentos.forEach(d => {
       deptHtml += `<option value="${d}">${d}</option>`;
@@ -404,37 +404,37 @@ export function initReporteSubordinadosFilters() {
   
   // 2. Poblar trabajadores según el departamento seleccionado
   const selectedDept = selectDept ? selectDept.value : 'todos';
-  let workersForSelect = subordinados;
+  let workersForSelect = colaboradores;
   if (selectedDept !== 'todos') {
-    workersForSelect = subordinados.filter(s => s.departamento === selectedDept);
+    workersForSelect = colaboradores.filter(s => s.departamento === selectedDept);
   }
   
-  const currentSubVal = selectSub.value || 'todos';
+  const currentColabVal = selectColab.value || 'todos';
   let html = isAdmin
     ? '<option value="todos">Todos los trabajadores</option>'
-    : '<option value="todos">Todos los subordinados</option>';
+    : '<option value="todos">Todos los colaboradores</option>';
   workersForSelect.forEach(s => {
     html += `<option value="${s.id}">${s.nombre} (Ficha: ${s.ficha || 'N/A'})</option>`;
   });
   
-  selectSub.innerHTML = html;
+  selectColab.innerHTML = html;
   
   // Mantener selección previa de trabajador si sigue existiendo en el nuevo conjunto
-  if (workersForSelect.some(s => s.id.toString() === currentSubVal) || currentSubVal === 'todos') {
-    selectSub.value = currentSubVal;
+  if (workersForSelect.some(s => s.id.toString() === currentColabVal) || currentColabVal === 'todos') {
+    selectColab.value = currentColabVal;
   } else {
-    selectSub.value = 'todos';
+    selectColab.value = 'todos';
   }
   
   // Actualizar textos de cabecera en reportes según el rol
-  const headerTitle = document.getElementById('reporteSubordinadosHeaderTitle');
-  const headerDesc = document.getElementById('reporteSubordinadosHeaderDesc');
+  const headerTitle = document.getElementById('reporteColaboradoresHeaderTitle');
+  const headerDesc = document.getElementById('reporteColaboradoresHeaderDesc');
   if (headerTitle && headerDesc) {
     if (isAdmin) {
       headerTitle.innerHTML = '<i class="fa-solid fa-file-invoice text-primary"></i> Informe de Desempeño del Personal';
       headerDesc.textContent = 'Genere y exporte el informe de indicadores individuales de todos los trabajadores.';
     } else {
-      headerTitle.innerHTML = '<i class="fa-solid fa-file-invoice text-primary"></i> Informe de Subordinados';
+      headerTitle.innerHTML = '<i class="fa-solid fa-file-invoice text-primary"></i> Informe de Colaboradores';
       headerDesc.textContent = 'Genere y exporte el informe de indicadores individuales del personal a su cargo.';
     }
   }
@@ -442,44 +442,44 @@ export function initReporteSubordinadosFilters() {
 
 export function handleReportDeptChange() {
   const selectDept = document.getElementById('repFiltroDepartamento');
-  const selectSub = document.getElementById('repFiltroSubordinado');
-  if (!selectSub) return;
+  const selectColab = document.getElementById('repFiltroColaborador');
+  if (!selectColab) return;
   
   const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
-  const subordinados = isAdmin
+  const colaboradores = isAdmin
     ? state.workersCache
     : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
   const selectedDept = selectDept ? selectDept.value : 'todos';
-  let workersForSelect = subordinados;
+  let workersForSelect = colaboradores;
   if (selectedDept !== 'todos') {
-    workersForSelect = subordinados.filter(s => s.departamento === selectedDept);
+    workersForSelect = colaboradores.filter(s => s.departamento === selectedDept);
   }
   
   let html = isAdmin
     ? '<option value="todos">Todos los trabajadores</option>'
-    : '<option value="todos">Todos los subordinados</option>';
+    : '<option value="todos">Todos los colaboradores</option>';
   workersForSelect.forEach(s => {
     html += `<option value="${s.id}">${s.nombre} (Ficha: ${s.ficha || 'N/A'})</option>`;
   });
   
-  selectSub.innerHTML = html;
-  selectSub.value = 'todos'; // Restablecer a todos al cambiar de departamento
+  selectColab.innerHTML = html;
+  selectColab.value = 'todos'; // Restablecer a todos al cambiar de departamento
   
-  renderReporteSubordinados();
+  renderReporteColaboradores();
 }
 
-export function renderReporteSubordinados() {
-  const printArea = document.getElementById('reporteSubordinadosPrintArea');
+export function renderReporteColaboradores() {
+  const printArea = document.getElementById('reporteColaboradoresPrintArea');
   if (!printArea) return;
   
   const isAdmin = state.currentUser && state.currentUser.rol === 'admin';
-  const subordinados = isAdmin
+  const colaboradores = isAdmin
     ? state.workersCache
     : state.workersCache.filter(w => w.supervisor_id === state.currentUser.id);
   
-  if (subordinados.length === 0) {
-    const emptyTitle = isAdmin ? 'No hay personal registrado' : 'No posee subordinados asignados';
+  if (colaboradores.length === 0) {
+    const emptyTitle = isAdmin ? 'No hay personal registrado' : 'No posee colaboradores asignados';
     const emptyMsg = isAdmin
       ? 'No hay trabajadores registrados en el sistema.'
       : 'Usted no tiene trabajadores registrados bajo su supervisión directa en el sistema.';
@@ -494,21 +494,21 @@ export function renderReporteSubordinados() {
   }
   
   const selectedDept = document.getElementById('repFiltroDepartamento')?.value || 'todos';
-  const selectedSubId = document.getElementById('repFiltroSubordinado')?.value || 'todos';
+  const selectedColabId = document.getElementById('repFiltroColaborador')?.value || 'todos';
   const dateDesde = document.getElementById('repFiltroFechaDesde')?.value || '';
   const dateHasta = document.getElementById('repFiltroFechaHasta')?.value || '';
   
-  let filteredSubordinados = subordinados;
+  let filteredColaboradores = colaboradores;
   
   // 1. Filtrar por departamento primero si se seleccionó uno específico
   if (selectedDept !== 'todos') {
-    filteredSubordinados = filteredSubordinados.filter(s => s.departamento === selectedDept);
+    filteredColaboradores = filteredColaboradores.filter(s => s.departamento === selectedDept);
   }
   
   // 2. Filtrar por trabajador específico
-  if (selectedSubId !== 'todos') {
-    const subIdNum = parseInt(selectedSubId);
-    filteredSubordinados = filteredSubordinados.filter(s => s.id === subIdNum);
+  if (selectedColabId !== 'todos') {
+    const colabIdNum = parseInt(selectedColabId);
+    filteredColaboradores = filteredColaboradores.filter(s => s.id === colabIdNum);
   }
   
   let totalTeamScore = 0;
@@ -523,7 +523,7 @@ export function renderReporteSubordinados() {
     'Deficiente (Bajo)': 0,
     'Sin Evaluaciones': 0
   };
- 
+  
   let htmlContent = `
     <div class="report-header">
       <img src="images/BEL_LOGO.jpg" alt="BEL Logo" class="report-logo" onerror="this.src='https://placehold.co/100x60/2e7d32/ffffff?text=BEL'">
@@ -535,8 +535,8 @@ export function renderReporteSubordinados() {
     </div>
   `;
   
-  filteredSubordinados.forEach(s => {
-    // Buscar todas las evaluaciones de este subordinado
+  filteredColaboradores.forEach(s => {
+    // Buscar todas las evaluaciones de este colaborador
     const workerEvals = state.evaluationsCache.filter(ev => {
       try {
         const parsed = safeParseJSON(ev.evaluacion);
@@ -622,12 +622,12 @@ export function renderReporteSubordinados() {
       else if (avgNum >= 2.2) nivelDesempeno = 'Regular (Tutoría)';
       else nivelDesempeno = 'Deficiente (Bajo)';
       
-      // Promediar los promedios ponderados de cada subordinado para el equipo
+      // Promediar los promedios ponderados de cada colaborador para el equipo
       totalTeamScore += avgNum;
       totalTeamCount++;
     }
     
-    // Acumular los promedios ponderados por competencia de este subordinado para el promedio del equipo (los no evaluados cuentan como 0, y omitir si no corresponde al tipo)
+    // Acumular los promedios ponderados por competencia de este colaborador para el promedio del equipo (los no evaluados cuentan como 0, y omitir si no corresponde al tipo)
     state.classesCache.forEach(c => {
       const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
       const workerTipo = s.tipo ? s.tipo.toUpperCase().trim() : 'GERENCIAL';
@@ -656,13 +656,13 @@ export function renderReporteSubordinados() {
     });
     
     htmlContent += `
-      <article class="premium-card subordinate-report-card">
-        <div class="subordinate-profile-grid">
+      <article class="premium-card colaborador-report-card">
+        <div class="colaborador-profile-grid">
           <div>
             <h3 style="margin: 0; color: var(--primary);"><i class="fa-solid fa-user-tie"></i> ${s.nombre}</h3>
             <p style="margin: 0.25rem 0 1rem 0; color: var(--muted-color); font-size: 0.9rem;">Ficha: <strong>${s.ficha || 'N/A'}</strong></p>
             
-            <div class="subordinate-meta">
+            <div class="colaborador-meta">
               <div>Cédula: <strong>${s.cedula}</strong></div>
               <div>Empresa: <strong>${s.empresa}</strong></div>
               <div>Cargo: <strong>${s.cargo}</strong></div>
@@ -686,7 +686,7 @@ export function renderReporteSubordinados() {
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; margin-top: 1.5rem; align-items: start;" class="subordinate-profile-grid">
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; margin-top: 1.5rem; align-items: start;" class="colaborador-profile-grid">
           <div>
             <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-list-ol"></i> Total por Competencia</h4>
             <div class="table-wrapper">
@@ -863,15 +863,15 @@ export function renderReporteSubordinados() {
     `;
   });
   
-  const promedioEquipo = filteredSubordinados.length > 0 ? (totalTeamScore / filteredSubordinados.length) : 0;
-  const promedioEquipoLabel = filteredSubordinados.length > 0 ? promedioEquipo.toFixed(1) : '0.0';
-  // Ajuste: las personas no evaluadas suman cero y participan en la efectividad dividiendo por el total de subordinados/trabajadores del departamento
-  const efectividadEquipo = filteredSubordinados.length > 0
-    ? Math.round(((totalTeamScore / filteredSubordinados.length) / 4) * 100)
+  const promedioEquipo = filteredColaboradores.length > 0 ? (totalTeamScore / filteredColaboradores.length) : 0;
+  const promedioEquipoLabel = filteredColaboradores.length > 0 ? promedioEquipo.toFixed(1) : '0.0';
+  // Ajuste: las personas no evaluadas suman cero y participan en la efectividad dividiendo por el total de colaboradores/trabajadores del departamento
+  const efectividadEquipo = filteredColaboradores.length > 0
+    ? Math.round(((totalTeamScore / filteredColaboradores.length) / 4) * 100)
     : 0;
   
   htmlContent += `
-    <article class="premium-card subordinate-report-card summary-report-card" style="margin-top: 3rem; page-break-before: always; break-before: page;">
+    <article class="premium-card colaborador-report-card summary-report-card" style="margin-top: 3rem; page-break-before: always; break-before: page;">
       <div style="text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h3 style="margin: 0; color: var(--primary); text-transform: uppercase;"><i class="fa-solid fa-chart-line"></i> Informe Resumen del Departamento</h3>
         <p style="margin: 0.25rem 0 0 0; color: var(--muted-color); font-size: 0.9rem;">Consolidado de efectividad y desempeño global del equipo supervisado</p>
@@ -880,7 +880,7 @@ export function renderReporteSubordinados() {
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
         <div class="kpi-card" style="padding: 1rem;">
           <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase;">Personal Evaluado</h5>
-          <h3 style="font-size: 1.75rem; margin-top: 0.25rem; font-weight: 700; color: var(--primary);">${workerSummaries.filter(w => w.evalCount > 0).length} / ${filteredSubordinados.length}</h3>
+          <h3 style="font-size: 1.75rem; margin-top: 0.25rem; font-weight: 700; color: var(--primary);">${workerSummaries.filter(w => w.evalCount > 0).length} / ${filteredColaboradores.length}</h3>
         </div>
         <div class="kpi-card" style="padding: 1rem;">
           <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase;">Promedio General</h5>
@@ -892,7 +892,7 @@ export function renderReporteSubordinados() {
         </div>
       </div>
  
-      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-top: 1.5rem;" class="subordinate-profile-grid">
+      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-top: 1.5rem;" class="colaborador-profile-grid">
         <div>
           <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-users"></i> Desempeño Individual del Personal</h4>
           <div class="table-wrapper">
@@ -977,8 +977,8 @@ export function renderReporteSubordinados() {
  
   printArea.innerHTML = htmlContent;
   
-  // Renderizar los gráficos de cada subordinado
-  filteredSubordinados.forEach(s => {
+  // Renderizar los gráficos de cada colaborador
+  filteredColaboradores.forEach(s => {
     const workerEvals = state.evaluationsCache.filter(ev => {
       try {
         const parsed = safeParseJSON(ev.evaluacion);
@@ -1112,6 +1112,6 @@ export function renderReporteSubordinados() {
   });
 }
 
-export function printReporteSubordinados() {
+export function printReporteColaboradores() {
   window.print();
 }

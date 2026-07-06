@@ -2,7 +2,7 @@
 
 import { state } from './state.js';
 import { showToast } from './utils.js';
-import { populateSupervisorSelects, populateCompetenciasSelects } from './admin.js';
+import { populateSupervisorSelects, populateCompetenciasSelects, populateDepartamentosSelect } from './admin.js';
 
 export async function initSupabase() {
   try {
@@ -118,9 +118,15 @@ export async function loadCaches() {
     if (datesRes.error) throw datesRes.error;
     state.fechaEvalCache = datesRes.data || [];
     
+    // 6. Departamentos (Unidades Administrativas)
+    const deptsRes = await state.supabaseClient.from('departamento').select('*').order('departamento');
+    if (deptsRes.error) throw deptsRes.error;
+    state.departmentsCache = deptsRes.data || [];
+    
     // Llenar selects dinámicos si es que ya están cargados en el DOM
     populateSupervisorSelects();
     populateCompetenciasSelects();
+    populateDepartamentosSelect();
   } catch (err) {
     console.error("Error cargando cachés:", err);
     showToast("Error al sincronizar datos con el servidor.", "error");

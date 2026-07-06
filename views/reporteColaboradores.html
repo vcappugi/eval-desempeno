@@ -1,14 +1,14 @@
-<!-- VIEW: REPORTE INDIVIDUAL DE SUBORDINADOS -->
-<section id="viewReporteSubordinados" style="display: none;">
+<!-- VIEW: REPORTE INDIVIDUAL DE COLABORADORES -->
+<section id="viewReporteColaboradores" style="display: none;">
   <!-- CONTROLS CONTAINER (HIDDEN ON PRINT) -->
   <div class="premium-card no-print" style="margin-bottom: 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h2 id="reporteSubordinadosHeaderTitle" style="margin: 0;"><i class="fa-solid fa-file-invoice text-primary"></i> Informe de Subordinados</h2>
-        <p id="reporteSubordinadosHeaderDesc" style="margin: 0.25rem 0 0 0; color: var(--muted-color);">Genere y exporte el informe de indicadores individuales del personal a su cargo.</p>
+        <h2 id="reporteColaboradoresHeaderTitle" style="margin: 0;"><i class="fa-solid fa-file-invoice text-primary"></i> Informe de Colaboradores</h2>
+        <p id="reporteColaboradoresHeaderDesc" style="margin: 0.25rem 0 0 0; color: var(--muted-color);">Genere y exporte el informe de indicadores individuales del personal a su cargo.</p>
       </div>
       <div>
-        <button class="primary" style="padding: 0.6rem 1.2rem; margin-bottom: 0;" onclick="printReporteSubordinados()">
+        <button class="primary" style="padding: 0.6rem 1.2rem; margin-bottom: 0;" onclick="printReporteColaboradores()">
           <i class="fa-solid fa-print"></i> Imprimir Informe
         </button>
       </div>
@@ -28,10 +28,10 @@
         </label>
       </div>
       <div>
-        <label for="repFiltroSubordinado" style="margin-bottom: 0;">
+        <label for="repFiltroColaborador" style="margin-bottom: 0;">
           Seleccionar Trabajador
-          <select id="repFiltroSubordinado" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">
-            <option value="todos">Todos los subordinados</option>
+          <select id="repFiltroColaborador" onchange="renderReporteColaboradores()" style="margin-bottom: 0;">
+            <option value="todos">Todos los colaboradores</option>
             <!-- Populated dynamically -->
           </select>
         </label>
@@ -39,20 +39,20 @@
       <div>
         <label for="repFiltroFechaDesde" style="margin-bottom: 0;">
           Fecha Desde
-          <input type="date" id="repFiltroFechaDesde" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">
+          <input type="date" id="repFiltroFechaDesde" onchange="renderReporteColaboradores()" style="margin-bottom: 0;">
         </label>
       </div>
       <div>
         <label for="repFiltroFechaHasta" style="margin-bottom: 0;">
           Fecha Hasta
-          <input type="date" id="repFiltroFechaHasta" onchange="renderReporteSubordinados()" style="margin-bottom: 0;">
+          <input type="date" id="repFiltroFechaHasta" onchange="renderReporteColaboradores()" style="margin-bottom: 0;">
         </label>
       </div>
     </div>
   </div>
 
   <!-- REPORT CONTAINER (PRINTABLE AREA) -->
-  <div id="reporteSubordinadosPrintArea">
+  <div id="reporteColaboradoresPrintArea">
     <!-- Dynamically populated from JS -->
   </div>
 </section>

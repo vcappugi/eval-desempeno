@@ -145,29 +145,36 @@ export function handleTrabTipoChange() {
 
 export async function openTrabajadorModal() {
   await openModal('trabajadorModal');
-  populateSupervisorSelects();
   
   document.getElementById('trabajadorForm').reset();
   document.getElementById('trabajadorIdInput').value = '';
   document.getElementById('trabajadorModalTitle').textContent = 'Agregar Trabajador';
   document.getElementById('trabClave').required = true;
   
+  populateDepartamentosSelect();
+  populateSupervisorSelects(); // Se filtrará por departamento actual (vacío, mostrando sólo Ninguno)
+  
   handleTrabTipoChange();
 }
 
 export async function editTrabajador(id) {
   await openModal('trabajadorModal');
-  populateSupervisorSelects();
   
   const w = state.workersCache.find(worker => worker.id === id);
   if (!w) return;
+  
+  // 1. Poblar departamentos primero
+  populateDepartamentosSelect();
+  document.getElementById('trabDepartamento').value = w.departamento || '';
+  
+  // 2. Poblar supervisores filtrado por el departamento seleccionado
+  populateSupervisorSelects();
   
   document.getElementById('trabajadorIdInput').value = w.id;
   document.getElementById('trabFicha').value = w.ficha || '';
   document.getElementById('trabCedula').value = w.cedula || '';
   document.getElementById('trabNombre').value = w.nombre || '';
   document.getElementById('trabEmpresa').value = w.empresa || '';
-  document.getElementById('trabDepartamento').value = w.departamento || '';
   document.getElementById('trabCargo').value = w.cargo || '';
   document.getElementById('trabSupervisor').value = w.supervisor_id || '';
   document.getElementById('trabUsuario').value = w.usuario || '';
@@ -689,16 +696,34 @@ export async function toggleEvaluationStatus(trabajadorId, fecha, closeStatus) {
 
 // ================= SELECTS DINÁMICOS =================
 
-export function populateSupervisorSelects() {
+export function populateSupervisorSelects(deptFilter) {
   const select = document.getElementById('trabSupervisor');
   if (!select) return;
   
+  if (deptFilter === undefined) {
+    const deptSelect = document.getElementById('trabDepartamento');
+    deptFilter = deptSelect ? deptSelect.value : "";
+  }
+  
   const val = select.value;
   select.innerHTML = '<option value="">Ninguno</option>';
-  state.workersCache.forEach(worker => {
-    select.innerHTML += `<option value="${worker.id}">${worker.nombre} (Ficha: ${worker.ficha || 'N/A'})</option>`;
-  });
-  select.value = val;
+  
+  if (deptFilter) {
+    const filteredWorkers = state.workersCache.filter(worker => 
+      worker.departamento === deptFilter && 
+      worker.tipo && worker.tipo.toUpperCase().trim() === 'GERENCIAL'
+    );
+    filteredWorkers.forEach(worker => {
+      select.innerHTML += `<option value="${worker.id}">${worker.nombre} (Ficha: ${worker.ficha || 'N/A'})</option>`;
+    });
+  }
+  
+  const optionExists = Array.from(select.options).some(opt => opt.value === val);
+  if (optionExists) {
+    select.value = val;
+  } else {
+    select.value = "";
+  }
 }
 
 export function populateCompetenciasSelects() {
@@ -711,6 +736,31 @@ export function populateCompetenciasSelects() {
     select.innerHTML += `<option value="${c.id}">${c.titulo} (${c.tipo || 'GERENCIAL'})</option>`;
   });
   select.value = val;
+}
+
+export function populateDepartamentosSelect() {
+  const select = document.getElementById('trabDepartamento');
+  if (!select) return;
+  
+  const val = select.value;
+  select.innerHTML = '<option value="">Seleccione un departamento...</option>';
+  state.departmentsCache.forEach(dep => {
+    select.innerHTML += `<option value="${dep.departamento}">${dep.departamento} (${dep.empresa})</option>`;
+  });
+  select.value = val;
+}
+
+export function handleTrabDepartamentoChange(deptName) {
+  const dep = state.departmentsCache.find(d => d.departamento === deptName);
+  if (dep) {
+    const empresaInput = document.getElementById('trabEmpresa');
+    if (empresaInput) {
+      empresaInput.value = dep.empresa || '';
+    }
+  }
+  
+  // Filtrar la lista de supervisores para mostrar sólo los del mismo departamento
+  populateSupervisorSelects(deptName);
 }
 
 // ================= CRUD: FECHAS DE EVALUACIÓN (FECHA_EVAL) =================
@@ -887,3 +937,161 @@ export async function deleteFechaEval(id) {
     handleRlsError(err);
   }
 }
+
+export function renderDepartamentosCrud() {
+  const tbody = document.getElementById('departamentosTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando unidades administrativas...</td></tr>';
+  
+  if (state.departmentsCache.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No hay unidades administrativas registradas.</td></tr>';
+    return;
+  }
+  
+  let html = '';
+  state.departmentsCache.forEach(dep => {
+    const createdDate = dep.created_at ? new Date(dep.created_at).toLocaleDateString() : 'N/A';
+    
+    // Verificar si algún trabajador pertenece a este departamento
+    const tieneTrabajadores = state.workersCache.some(w => w.departamento === dep.departamento);
+    
+    let actionButtons = '';
+    if (tieneTrabajadores) {
+      actionButtons = `
+        <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editDepartamento(${dep.id})" title="Modificar">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <span style="background-color: var(--primary-focus); color: var(--primary); font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.25rem;" title="Esta unidad contiene trabajadores y no puede ser eliminada.">
+          <i class="fa-solid fa-lock"></i> Con Personal
+        </span>
+      `;
+    } else {
+      actionButtons = `
+        <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editDepartamento(${dep.id})" title="Modificar">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="outline contrast" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="deleteDepartamento(${dep.id})" title="Eliminar">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      `;
+    }
+    
+    html += `
+      <tr>
+        <td><strong>${dep.id}</strong></td>
+        <td>${dep.departamento || 'N/A'}</td>
+        <td>${dep.empresa || 'N/A'}</td>
+        <td>${createdDate}</td>
+        <td style="text-align: right; white-space: nowrap;">
+          ${actionButtons}
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+export async function openDepartamentoModal() {
+  await openModal('departamentoModal');
+  document.getElementById('departamentoForm').reset();
+  document.getElementById('departamentoIdInput').value = '';
+  document.getElementById('departamentoModalTitle').textContent = 'Agregar Unidad Administrativa';
+}
+
+export async function editDepartamento(id) {
+  const dep = state.departmentsCache.find(item => item.id === id);
+  if (!dep) return;
+  
+  await openModal('departamentoModal');
+  document.getElementById('departamentoIdInput').value = dep.id;
+  document.getElementById('depNombre').value = dep.departamento || '';
+  document.getElementById('depEmpresa').value = dep.empresa || '';
+  
+  document.getElementById('departamentoModalTitle').textContent = 'Modificar Unidad Administrativa';
+}
+
+export async function saveDepartamento(event) {
+  if (event) event.preventDefault();
+  const id = document.getElementById('departamentoIdInput').value;
+  const nombre = document.getElementById('depNombre').value.trim();
+  const empresa = document.getElementById('depEmpresa').value.trim();
+  
+  if (!nombre || !empresa) {
+    showToast("Por favor complete todos los campos.", "error");
+    return;
+  }
+  
+  // Validar duplicados de departamento en el sistema
+  const existeDep = state.departmentsCache.some(item => 
+    item.departamento.toLowerCase() === nombre.toLowerCase() && 
+    item.empresa.toLowerCase() === empresa.toLowerCase() && 
+    item.id !== parseInt(id)
+  );
+  if (existeDep) {
+    showToast("Esta unidad administrativa ya se encuentra registrada para esa empresa.", "error");
+    return;
+  }
+  
+  const payload = { 
+    departamento: nombre,
+    empresa: empresa
+  };
+  
+  try {
+    if (id) {
+      const { error } = await state.supabaseClient
+        .from('departamento')
+        .update(payload)
+        .eq('id', id);
+        
+      if (error) throw error;
+      showToast("Unidad administrativa actualizada exitosamente.");
+    } else {
+      const { error } = await state.supabaseClient
+        .from('departamento')
+        .insert([payload]);
+        
+      if (error) throw error;
+      showToast("Unidad administrativa creada exitosamente.");
+    }
+    
+    closeModal('departamentoModal');
+    await loadCaches();
+    renderDepartamentosCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
+export async function deleteDepartamento(id) {
+  const dep = state.departmentsCache.find(item => item.id === id);
+  if (!dep) return;
+  
+  // Validar si tiene trabajadores asignados
+  const tieneTrabajadores = state.workersCache.some(w => w.departamento === dep.departamento);
+  if (tieneTrabajadores) {
+    showToast("No se puede eliminar una unidad administrativa que tiene trabajadores asignados.", "error");
+    return;
+  }
+  
+  if (!confirm(`¿Está seguro de eliminar la unidad administrativa "${dep.departamento}"?`)) {
+    return;
+  }
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('departamento')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+    
+    showToast("Unidad administrativa eliminada correctamente.");
+    await loadCaches();
+    renderDepartamentosCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
