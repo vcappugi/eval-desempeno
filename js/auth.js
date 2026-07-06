@@ -1,7 +1,7 @@
-import { state } from './state.js';
-import { showToast, openModal, closeModal, handleRlsError } from './utils.js';
-import { loadCaches } from './supabase.js';
-import { switchView } from './views.js';
+import { state } from './state.js?v=2.1.6';
+import { showToast, openModal, closeModal, handleRlsError } from './utils.js?v=2.1.6';
+import { loadCaches } from './supabase.js?v=2.1.6';
+import { switchView } from './views.js?v=2.1.6';
 
 export async function checkSession() {
   const savedUser = localStorage.getItem('sessionUser') || sessionStorage.getItem('sessionUser');

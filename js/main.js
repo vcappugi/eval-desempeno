@@ -1,11 +1,11 @@
 // js/main.js - Punto de entrada principal y enlace global para el DOM
 
-import { state } from './state.js';
-import { initSupabase } from './supabase.js';
-import { closeModal } from './utils.js';
-import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js';
-import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage } from './evaluations.js';
+import { state } from './state.js?v=2.1.6';
+import { initSupabase } from './supabase.js?v=2.1.6';
+import { closeModal } from './utils.js?v=2.1.6';
+import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js?v=2.1.6';
+import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js?v=2.1.6';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, handleEvalWorkerDeptFilter } from './evaluations.js?v=2.1.6';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -34,9 +34,10 @@ import {
   saveDepartamento,
   renderDepartamentosCrud,
   handleTrabDepartamentoChange,
-  populateDepartamentosSelect
-} from './admin.js';
-import { showWorkerChartModal, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange } from './reports.js';
+  populateDepartamentosSelect,
+  handleWorkerDeptFilter
+} from './admin.js?v=2.1.6';
+import { showWorkerChartModal, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange } from './reports.js?v=2.1.6';
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", async () => {
@@ -75,6 +76,7 @@ window.selectRangoOption = selectRangoOption;
 window.checkEvaluationDateUnique = checkEvaluationDateUnique;
 window.saveEvaluation = saveEvaluation;
 window.handleEvalWorkerSearch = handleEvalWorkerSearch;
+window.handleEvalWorkerDeptFilter = handleEvalWorkerDeptFilter;
 window.changeEvalsPage = changeEvalsPage;
 
 // CRUD Trabajadores
@@ -82,6 +84,7 @@ window.editTrabajador = editTrabajador;
 window.deleteTrabajador = deleteTrabajador;
 window.changeWorkersPage = changeWorkersPage;
 window.handleWorkerSearch = handleWorkerSearch;
+window.handleWorkerDeptFilter = handleWorkerDeptFilter;
 window.openTrabajadorModal = openTrabajadorModal;
 window.saveTrabajador = saveTrabajador;
 window.handleTrabTipoChange = handleTrabTipoChange;

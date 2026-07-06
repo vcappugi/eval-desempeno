@@ -28,8 +28,12 @@
       </div>
       
       <!-- Search Bar -->
-      <div style="margin-bottom: 1rem;">
-        <input type="search" id="searchWorkerInput" placeholder="🔍 Buscar trabajador por cédula, nombre o usuario..." oninput="handleWorkerSearch(this.value)" style="margin-bottom: 0;">
+      <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        <input type="search" id="searchWorkerInput" placeholder="🔍 Buscar trabajador por cédula, nombre o usuario..." oninput="handleWorkerSearch(this.value)" style="margin-bottom: 0; flex-grow: 1;">
+        <select id="searchWorkerDeptFilter" onchange="handleWorkerDeptFilter(this.value)" style="margin-bottom: 0; max-width: 250px;">
+          <option value="">Todos los departamentos</option>
+          <!-- Populated dynamically -->
+        </select>
       </div>
       
       <div class="table-wrapper">

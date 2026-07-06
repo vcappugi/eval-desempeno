@@ -1,8 +1,8 @@
 // js/admin.js - Operaciones del Panel Administrativo (CRUDs y cierre de evaluaciones)
 
-import { state } from './state.js';
-import { showToast, handleRlsError, openModal, closeModal, safeParseJSON } from './utils.js';
-import { loadCaches } from './supabase.js';
+import { state } from './state.js?v=2.1.6';
+import { showToast, handleRlsError, openModal, closeModal, safeParseJSON } from './utils.js?v=2.1.6';
+import { loadCaches } from './supabase.js?v=2.1.6';
 
 // ================= CRUD: TRABAJADORES =================
 
@@ -22,6 +22,10 @@ export async function renderTrabajadoresCrud() {
       
     if (state.workersSearchQuery) {
       query = query.or(`cedula.ilike.%${state.workersSearchQuery}%,nombre.ilike.%${state.workersSearchQuery}%,usuario.ilike.%${state.workersSearchQuery}%`);
+    }
+    
+    if (state.workersDeptFilter) {
+      query = query.eq('departamento', state.workersDeptFilter);
     }
     
     const { data: paginatedWorkers, count, error } = await query
@@ -736,6 +740,38 @@ export function populateCompetenciasSelects() {
     select.innerHTML += `<option value="${c.id}">${c.titulo} (${c.tipo || 'GERENCIAL'})</option>`;
   });
   select.value = val;
+}
+
+export function populateSearchDeptFilters() {
+  const evalSelect = document.getElementById('searchEvalDeptFilter');
+  const workerSelect = document.getElementById('searchWorkerDeptFilter');
+  
+  // Obtener una lista única de departamentos cargados desde la tabla 'departamento'
+  const uniqueDepts = [...new Set(state.departmentsCache.map(dep => dep.departamento).filter(Boolean))].sort();
+  
+  if (evalSelect) {
+    const val = evalSelect.value;
+    evalSelect.innerHTML = '<option value="">Todos los departamentos</option>';
+    uniqueDepts.forEach(deptName => {
+      evalSelect.innerHTML += `<option value="${deptName}">${deptName}</option>`;
+    });
+    evalSelect.value = val;
+  }
+  
+  if (workerSelect) {
+    const val = workerSelect.value;
+    workerSelect.innerHTML = '<option value="">Todos los departamentos</option>';
+    uniqueDepts.forEach(deptName => {
+      workerSelect.innerHTML += `<option value="${deptName}">${deptName}</option>`;
+    });
+    workerSelect.value = val;
+  }
+}
+
+export async function handleWorkerDeptFilter(deptName) {
+  state.workersDeptFilter = deptName;
+  state.workersCurrentPage = 1;
+  await renderTrabajadoresCrud();
 }
 
 export function populateDepartamentosSelect() {

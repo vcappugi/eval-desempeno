@@ -5,8 +5,12 @@
     <p id="evaluacionesHeaderDesc">Seleccione el trabajador que desea evaluar. Solo se muestran los trabajadores bajo su supervisión directa.</p>
     
     <!-- Search Bar -->
-    <div style="margin-bottom: 1rem;">
-      <input type="search" id="searchEvalWorkerInput" placeholder="🔍 Buscar por nombre, cédula o departamento..." oninput="handleEvalWorkerSearch(this.value)" style="margin-bottom: 0;">
+    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+      <input type="search" id="searchEvalWorkerInput" placeholder="🔍 Buscar por nombre o cédula..." oninput="handleEvalWorkerSearch(this.value)" style="margin-bottom: 0; flex-grow: 1;">
+      <select id="searchEvalDeptFilter" onchange="handleEvalWorkerDeptFilter(this.value)" style="margin-bottom: 0; max-width: 250px;">
+        <option value="">Todos los departamentos</option>
+        <!-- Populated dynamically -->
+      </select>
     </div>
     
     <div class="table-wrapper">

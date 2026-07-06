@@ -1,7 +1,7 @@
 // js/reports.js - Indicadores, reportes y gráficos
 
-import { state } from './state.js';
-import { safeParseJSON, openModal } from './utils.js';
+import { state } from './state.js?v=2.1.6';
+import { safeParseJSON, openModal } from './utils.js?v=2.1.6';
 
 export function renderIndicadoresGenerales() {
   // 1. Total Trabajadores

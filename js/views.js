@@ -1,10 +1,10 @@
 // js/views.js - Control de vistas, temas y navegación SPA
 
-import { state } from './state.js';
-import { ensureTemplateLoaded } from './utils.js';
-import { renderColaboradores, closeEvaluationForm } from './evaluations.js';
-import { renderIndicadoresGenerales, initReporteColaboradoresFilters, renderReporteColaboradores } from './reports.js';
-import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud, renderDepartamentosCrud } from './admin.js';
+import { state } from './state.js?v=2.1.6';
+import { ensureTemplateLoaded } from './utils.js?v=2.1.6';
+import { renderColaboradores, closeEvaluationForm } from './evaluations.js?v=2.1.6';
+import { renderIndicadoresGenerales, initReporteColaboradoresFilters, renderReporteColaboradores } from './reports.js?v=2.1.6';
+import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud, renderDepartamentosCrud, populateSearchDeptFilters } from './admin.js?v=2.1.6';
 
 export async function switchView(viewName) {
   state.activeView = viewName;
@@ -30,10 +30,14 @@ export async function switchView(viewName) {
     
     // Resetear filtros al ingresar a la vista
     state.evalsSearchQuery = '';
+    state.evalsDeptFilter = '';
     state.evalsCurrentPage = 1;
     const searchInput = document.getElementById('searchEvalWorkerInput');
     if (searchInput) searchInput.value = '';
+    const deptSelect = document.getElementById('searchEvalDeptFilter');
+    if (deptSelect) deptSelect.value = '';
     
+    populateSearchDeptFilters();
     renderColaboradores();
     closeEvaluationForm();
   } else if (viewName === 'indicadores') {
@@ -90,7 +94,18 @@ export function switchAdminTab(tabName) {
   document.getElementById('adminTabDepartamentos').style.display = tabName === 'departamentos' ? 'block' : 'none';
   
   // Renderizar información correspondiente
-  if (tabName === 'trabajadores') renderTrabajadoresCrud();
+  if (tabName === 'trabajadores') {
+    state.workersSearchQuery = '';
+    state.workersDeptFilter = '';
+    state.workersCurrentPage = 1;
+    const searchInput = document.getElementById('searchWorkerInput');
+    if (searchInput) searchInput.value = '';
+    const deptSelect = document.getElementById('searchWorkerDeptFilter');
+    if (deptSelect) deptSelect.value = '';
+    
+    populateSearchDeptFilters();
+    renderTrabajadoresCrud();
+  }
   else if (tabName === 'competencias') renderCompetenciasCrud();
   else if (tabName === 'aspectos') renderAspectosCrud();
   else if (tabName === 'cierre') renderCierreEvaluaciones();

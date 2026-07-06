@@ -1,8 +1,8 @@
 // js/supabase.js - Cliente de Supabase y recarga de cachés de datos
 
-import { state } from './state.js';
-import { showToast } from './utils.js';
-import { populateSupervisorSelects, populateCompetenciasSelects, populateDepartamentosSelect } from './admin.js';
+import { state } from './state.js?v=2.1.6';
+import { showToast } from './utils.js?v=2.1.6';
+import { populateSupervisorSelects, populateCompetenciasSelects, populateDepartamentosSelect, populateSearchDeptFilters } from './admin.js?v=2.1.6';
 
 export async function initSupabase() {
   try {
@@ -127,6 +127,7 @@ export async function loadCaches() {
     populateSupervisorSelects();
     populateCompetenciasSelects();
     populateDepartamentosSelect();
+    populateSearchDeptFilters();
   } catch (err) {
     console.error("Error cargando cachés:", err);
     showToast("Error al sincronizar datos con el servidor.", "error");

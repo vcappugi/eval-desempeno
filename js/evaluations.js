@@ -1,9 +1,9 @@
 // js/evaluations.js - Formulario de evaluaciones y listado de colaboradores
 
-import { state } from './state.js';
-import { safeParseJSON, showToast, handleRlsError } from './utils.js';
-import { loadCaches } from './supabase.js';
-import { showWorkerChartModal } from './reports.js';
+import { state } from './state.js?v=2.1.6';
+import { safeParseJSON, showToast, handleRlsError } from './utils.js?v=2.1.6';
+import { loadCaches } from './supabase.js?v=2.1.6';
+import { showWorkerChartModal } from './reports.js?v=2.1.6';
 
 export function renderColaboradores() {
   const tbody = document.getElementById('colaboradoresTableBody');
@@ -33,9 +33,14 @@ export function renderColaboradores() {
   
   // Filtrar según el término de búsqueda (nombre, cédula o departamento)
   let filtered = colaboradores;
+  
+  if (state.evalsDeptFilter) {
+    filtered = filtered.filter(w => w.departamento === state.evalsDeptFilter);
+  }
+  
   if (state.evalsSearchQuery) {
     const q = state.evalsSearchQuery.toLowerCase();
-    filtered = colaboradores.filter(w => 
+    filtered = filtered.filter(w => 
       (w.nombre && w.nombre.toLowerCase().includes(q)) ||
       (w.cedula && w.cedula.toLowerCase().includes(q)) ||
       (w.departamento && w.departamento.toLowerCase().includes(q))
@@ -120,6 +125,12 @@ export function renderColaboradores() {
 
 export function handleEvalWorkerSearch(query) {
   state.evalsSearchQuery = query.trim();
+  state.evalsCurrentPage = 1;
+  renderColaboradores();
+}
+
+export function handleEvalWorkerDeptFilter(deptName) {
+  state.evalsDeptFilter = deptName;
   state.evalsCurrentPage = 1;
   renderColaboradores();
 }
