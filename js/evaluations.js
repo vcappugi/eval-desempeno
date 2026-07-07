@@ -502,7 +502,7 @@ export async function saveEvaluation(event) {
   try {
     const { error } = await state.supabaseClient
       .from('evaluacion')
-      .upsert(insertPayloads);
+      .upsert(insertPayloads, { defaultToNull: false });
       
     if (error) throw error;
     

@@ -686,7 +686,7 @@ export async function toggleEvaluationStatus(trabajadorId, fecha, closeStatus) {
   try {
     const { error } = await state.supabaseClient
       .from('evaluacion')
-      .upsert(updates);
+      .upsert(updates, { defaultToNull: false });
       
     if (error) throw error;
     
