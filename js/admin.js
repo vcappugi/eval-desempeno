@@ -713,10 +713,14 @@ export function populateSupervisorSelects(deptFilter) {
   select.innerHTML = '<option value="">Ninguno</option>';
   
   if (deptFilter) {
-    const filteredWorkers = state.workersCache.filter(worker => 
-      worker.departamento === deptFilter && 
-      worker.tipo && worker.tipo.toUpperCase().trim() === 'GERENCIAL'
-    );
+    const filteredWorkers = state.workersCache.filter(worker => {
+      const isSameDept = worker.departamento === deptFilter;
+      const isDireccionGeneral = worker.departamento && 
+        (worker.departamento.toUpperCase().trim() === 'DIRECCIÓN GENERAL' || 
+         worker.departamento.toUpperCase().trim() === 'DIRECCION GENERAL');
+      const isGerencial = worker.tipo && worker.tipo.toUpperCase().trim() === 'GERENCIAL';
+      return (isSameDept || isDireccionGeneral) && isGerencial;
+    });
     filteredWorkers.forEach(worker => {
       select.innerHTML += `<option value="${worker.id}">${worker.nombre} (Ficha: ${worker.ficha || 'N/A'})</option>`;
     });
