@@ -12,6 +12,9 @@ export const state = {
   evalsPerPage: 20,
   evalsSearchQuery: '',
   evalsDeptFilter: '',
+  cierreCurrentPage: 1,
+  cierrePerPage: 20,
+  cierreSearchQuery: '',
   
   // Cachés de Datos de la Base de Datos
   workersCache: [],

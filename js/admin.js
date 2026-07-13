@@ -626,13 +626,64 @@ export function renderCierreEvaluaciones() {
   
   const groupsList = Object.values(grouped).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   
-  if (groupsList.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No se han realizado evaluaciones aún.</td></tr>';
+  // Filtrar según el término de búsqueda (nombre, ficha o fecha de evaluación)
+  let filtered = groupsList;
+  if (state.cierreSearchQuery) {
+    const q = state.cierreSearchQuery.toLowerCase();
+    filtered = filtered.filter(group => {
+      const worker = state.workersCache.find(w => w.id === group.trabajadorId);
+      const workerName = worker ? worker.nombre.toLowerCase() : '';
+      const workerFicha = worker && worker.ficha ? worker.ficha.toLowerCase() : '';
+      const formattedDate = new Date(group.fecha + 'T00:00:00').toLocaleDateString().toLowerCase();
+      const rawDate = group.fecha.toLowerCase();
+      
+      return workerName.includes(q) || workerFicha.includes(q) || formattedDate.includes(q) || rawDate.includes(q);
+    });
+  }
+  
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / state.cierrePerPage));
+  
+  if (state.cierreCurrentPage > totalPages) {
+    state.cierreCurrentPage = totalPages;
+  }
+  
+  const startIndex = (state.cierreCurrentPage - 1) * state.cierrePerPage;
+  const endIndex = Math.min(startIndex + state.cierrePerPage, total);
+  
+  // Actualizar controles de paginación
+  const rangeLabel = document.getElementById('cierreShowingRange');
+  const totalLabel = document.getElementById('cierreTotalCount');
+  const curPageLabel = document.getElementById('cierreCurrentPageLabel');
+  const totPagesLabel = document.getElementById('cierreTotalPagesLabel');
+  const prevBtn = document.getElementById('btnPrevCierrePage');
+  const nextBtn = document.getElementById('btnNextCierrePage');
+  
+  if (rangeLabel) rangeLabel.textContent = total === 0 ? '0' : `${startIndex + 1}-${endIndex}`;
+  if (totalLabel) totalLabel.textContent = total;
+  if (curPageLabel) curPageLabel.textContent = state.cierreCurrentPage;
+  if (totPagesLabel) totPagesLabel.textContent = totalPages;
+  
+  if (prevBtn) prevBtn.disabled = state.cierreCurrentPage === 1;
+  if (nextBtn) nextBtn.disabled = state.cierreCurrentPage === totalPages;
+  
+  const paginationContainer = document.getElementById('cierrePaginationContainer');
+  if (paginationContainer) {
+    paginationContainer.style.display = total === 0 ? 'none' : 'flex';
+  }
+  
+  const pageGroups = filtered.slice(startIndex, endIndex);
+  
+  if (pageGroups.length === 0) {
+    const emptyMsg = state.cierreSearchQuery 
+      ? 'No se encontraron evaluaciones que coincidan con la búsqueda.'
+      : 'No se han realizado evaluaciones aún.';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">${emptyMsg}</td></tr>`;
     return;
   }
   
   let html = '';
-  groupsList.forEach((group, index) => {
+  pageGroups.forEach((group, index) => {
     const worker = state.workersCache.find(w => w.id === group.trabajadorId);
     const workerLabel = worker ? `${worker.nombre} (Ficha: ${worker.ficha || 'N/A'})` : `Desconocido (ID: ${group.trabajadorId})`;
     const statusText = group.estado ? 
@@ -647,9 +698,9 @@ export function renderCierreEvaluaciones() {
 
     html += `
       <tr>
-        <td>#${index + 1}</td>
+        <td>#${startIndex + index + 1}</td>
         <td><strong>${workerLabel}</strong></td>
-        <td>${new Date(group.fecha).toLocaleDateString()}</td>
+        <td>${new Date(group.fecha + 'T00:00:00').toLocaleDateString()}</td>
         <td>${group.aspectos} aspectos evaluados</td>
         <td>${statusText}</td>
         <td style="text-align: right; white-space: nowrap;">
@@ -1282,5 +1333,119 @@ export async function deleteEvaluation(trabajadorId, fecha) {
   } catch (err) {
     handleRlsError(err);
   }
+}
+
+export function handleCierreSearch(query) {
+  state.cierreSearchQuery = query.trim();
+  state.cierreCurrentPage = 1;
+  renderCierreEvaluaciones();
+}
+
+export function changeCierrePage(direction) {
+  state.cierreCurrentPage += direction;
+  renderCierreEvaluaciones();
+}
+
+export function printEvaluationDetail() {
+  const workerName = document.getElementById('detEvalTrabajador').textContent;
+  const workerFicha = document.getElementById('detEvalFicha').textContent;
+  const workerCargo = document.getElementById('detEvalCargo').textContent;
+  const workerDept = document.getElementById('detEvalDepartamento').textContent;
+  const evalFecha = document.getElementById('detEvalFecha').textContent;
+  const evalEstado = document.getElementById('detEvalEstado').textContent;
+  const tableRows = document.getElementById('detalleEvaluacionTableBody').innerHTML;
+  
+  // Create printing container
+  const printDiv = document.createElement('div');
+  printDiv.id = 'print-evaluation-container';
+  printDiv.innerHTML = `
+    <div style="font-family: Arial, sans-serif; padding: 2rem; color: #000000; background: #ffffff;">
+      <!-- Header with Logo -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2e7d32; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <img src="images/BEL_LOGO.jpg" alt="BEL Logo" style="height: 50px;" onerror="this.src='https://placehold.co/120x80/2e7d32/ffffff?text=BEL+Group'">
+        </div>
+        <div style="text-align: right;">
+          <h2 style="margin: 0; color: #2e7d32; font-size: 1.5rem;">Reporte de Evaluación</h2>
+          <small style="color: #666666;">Corporación BEL</small>
+        </div>
+      </div>
+      
+      <!-- Worker details -->
+      <div style="background-color: #f1f8e9; border-left: 5px solid #2e7d32; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; font-size: 0.9rem;">
+        <div>
+          <p style="margin: 0 0 0.5rem 0; color: #666666;">Colaborador:</p>
+          <strong style="font-size: 1.2rem; color: #2e7d32;">${workerName}</strong>
+          <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+            <span>Ficha: <strong>${workerFicha}</strong></span>
+            <span>Cargo: <strong>${workerCargo}</strong></span>
+            <span>Departamento: <strong>${workerDept}</strong></span>
+          </div>
+        </div>
+        <div style="text-align: right; border-left: 1px solid rgba(0,0,0,0.1); padding-left: 1rem;">
+          <p style="margin: 0 0 0.5rem 0; color: #666666;">Fecha:</p>
+          <strong style="font-size: 1.2rem;">${evalFecha}</strong>
+          <p style="margin: 0.5rem 0 0 0;">Estado: <strong>${evalEstado}</strong></p>
+        </div>
+      </div>
+      
+      <!-- Table of Aspects -->
+      <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem;">
+        <thead>
+          <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left; width: 25%;">Competencia</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Aspecto Evaluado</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; width: 15%;">Respuesta</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; width: 15%;">Puntaje (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+      
+      <!-- Footer note -->
+      <div style="margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #888888; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+        Este documento es un reporte oficial de evaluación de desempeño generado por el Sistema de Evaluación de Desempeño - BEL.
+      </div>
+    </div>
+  `;
+  
+  // Style override for print view to isolate print area
+  const style = document.createElement('style');
+  style.id = 'print-evaluation-style';
+  style.innerHTML = `
+    @media print {
+      body > *:not(#print-evaluation-container) {
+        display: none !important;
+      }
+      #print-evaluation-container {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      #print-evaluation-container td, #print-evaluation-container th {
+        border: 1px solid #cbd5e1 !important;
+        padding: 8px !important;
+      }
+      #print-evaluation-container mark {
+        background-color: #f1f5f9 !important;
+        color: #000000 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+  `;
+  
+  document.head.appendChild(style);
+  document.body.appendChild(printDiv);
+  
+  window.print();
+  
+  setTimeout(() => {
+    printDiv.remove();
+    style.remove();
+  }, 1000);
 }
 

@@ -24,8 +24,11 @@ import {
   saveAspecto,
   renderAspectosCrud,
   toggleEvaluationStatus,
+  handleCierreSearch,
+  changeCierrePage,
   showEvaluationDetail,
   confirmDeleteEvaluation,
+  printEvaluationDetail,
   editFechaEval,
   deleteFechaEval,
   openFechaEvalModal,
@@ -108,6 +111,9 @@ window.renderAspectosCrud = renderAspectosCrud;
 window.toggleEvaluationStatus = toggleEvaluationStatus;
 window.showEvaluationDetail = showEvaluationDetail;
 window.confirmDeleteEvaluation = confirmDeleteEvaluation;
+window.handleCierreSearch = handleCierreSearch;
+window.changeCierrePage = changeCierrePage;
+window.printEvaluationDetail = printEvaluationDetail;
 
 // CRUD Fechas
 window.editFechaEval = editFechaEval;
