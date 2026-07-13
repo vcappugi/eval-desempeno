@@ -24,6 +24,8 @@ import {
   saveAspecto,
   renderAspectosCrud,
   toggleEvaluationStatus,
+  showEvaluationDetail,
+  confirmDeleteEvaluation,
   editFechaEval,
   deleteFechaEval,
   openFechaEvalModal,
@@ -104,6 +106,8 @@ window.renderAspectosCrud = renderAspectosCrud;
 
 // Cierre de Evaluaciones
 window.toggleEvaluationStatus = toggleEvaluationStatus;
+window.showEvaluationDetail = showEvaluationDetail;
+window.confirmDeleteEvaluation = confirmDeleteEvaluation;
 
 // CRUD Fechas
 window.editFechaEval = editFechaEval;

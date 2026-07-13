@@ -50,7 +50,7 @@ export function renderIndicadoresGenerales() {
       // Si el aspecto es de tipo numérico (rango1,4), calculamos promedios
       const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
       if (aspecto && aspecto.tipo === 'rango1,4') {
-        const valNum = parseFloat(valor);
+        const valNum = (valor !== null && valor !== undefined && valor !== '') ? parseFloat(valor) : 0;
         if (!isNaN(valNum)) {
           const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
           const claseId = ev.clase_id;
@@ -217,7 +217,8 @@ export async function showWorkerChartModal(workerId) {
     try {
       const parsed = safeParseJSON(ev.evaluacion);
       if (!parsed) return;
-      const valor = parseFloat(parsed.valor);
+      const rawValor = parsed.valor;
+      const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
       
       // Tomar la fecha más reciente de evaluación
       if (!ultimaFecha || new Date(ev.fecha) > new Date(ultimaFecha)) {
@@ -575,7 +576,8 @@ export function renderReporteColaboradores() {
       try {
         const parsed = safeParseJSON(ev.evaluacion);
         if (!parsed) return;
-        const valor = parseFloat(parsed.valor);
+        const rawValor = parsed.valor;
+        const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
         const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
         if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
           const claseId = ev.clase_id;
@@ -749,7 +751,8 @@ export function renderReporteColaboradores() {
                 try {
                   const parsed = safeParseJSON(row.evaluacion);
                   if (!parsed) return;
-                  const valor = parseFloat(parsed.valor);
+                  const rawValor = parsed.valor;
+                  const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
                   const aspecto = state.aspectsCache.find(a => a.id === row.item_evaluacion_id);
                   if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
                     const claseId = row.clase_id;
@@ -818,15 +821,18 @@ export function renderReporteColaboradores() {
                           try {
                             const parsed = safeParseJSON(row.evaluacion);
                             if (parsed) {
-                              ratingVal = parsed.valor;
-                              if (aspect && aspect.tipo === 'si/no') {
-                                ratingVal = ratingVal.toUpperCase();
-                              } else if (aspect && aspect.tipo === 'rango1,4') {
-                                const valNum = parseFloat(ratingVal);
-                                const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
-                                if (!isNaN(valNum)) {
-                                  const pct = (valNum / 4) * weight;
-                                  pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
+                              const valor = parsed.valor;
+                              if (valor !== null && valor !== undefined && valor !== '') {
+                                ratingVal = valor;
+                                if (aspect && aspect.tipo === 'si/no') {
+                                  ratingVal = ratingVal.toUpperCase();
+                                } else if (aspect && aspect.tipo === 'rango1,4') {
+                                  const valNum = parseFloat(ratingVal);
+                                  const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
+                                  if (!isNaN(valNum)) {
+                                    const pct = (valNum / 4) * weight;
+                                    pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
+                                  }
                                 }
                               }
                             }
@@ -1001,7 +1007,8 @@ export function renderReporteColaboradores() {
       try {
         const parsed = safeParseJSON(ev.evaluacion);
         if (!parsed) return;
-        const valor = parseFloat(parsed.valor);
+        const rawValor = parsed.valor;
+        const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
         const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
         if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
           const claseId = ev.clase_id;

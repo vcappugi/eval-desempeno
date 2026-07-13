@@ -108,10 +108,28 @@ export async function loadCaches() {
       a.clase = parentClass ? { titulo: parentClass.titulo, tipo: parentClass.tipo } : null;
     });
     
-    // 4. Evaluaciones
-    const evalsRes = await state.supabaseClient.from('evaluacion').select('*');
-    if (evalsRes.error) throw evalsRes.error;
-    state.evaluationsCache = evalsRes.data || [];
+    // 4. Evaluaciones - cargar todas paginando para evitar el límite de 1000 de Supabase
+    let allEvaluations = [];
+    let evalsFrom = 0;
+    let evalsTo = 999;
+    let evalsHasMore = true;
+    while (evalsHasMore) {
+      const evalsRes = await state.supabaseClient
+        .from('evaluacion')
+        .select('*')
+        .order('id')
+        .range(evalsFrom, evalsTo);
+      if (evalsRes.error) throw evalsRes.error;
+      const data = evalsRes.data || [];
+      allEvaluations = allEvaluations.concat(data);
+      if (data.length < 1000) {
+        evalsHasMore = false;
+      } else {
+        evalsFrom += 1000;
+        evalsTo += 1000;
+      }
+    }
+    state.evaluationsCache = allEvaluations;
     
     // 5. Fechas de Evaluación
     const datesRes = await state.supabaseClient.from('fecha_eval').select('*').order('fecha', { ascending: false });

@@ -261,7 +261,7 @@ export function renderEvaluationFormQuestions(worker) {
             <div class="rango-container" data-aspecto-id="${a.id}">
               ${[1,2,3,4].map(v => `
                 <label class="rango-option" id="label-asp-${a.id}-${v}" title="${tooltips[v]}" onclick="selectRangoOption(${a.id}, ${v})">
-                  <input type="radio" name="aspecto_${a.id}" value="${v}" required>
+                  <input type="radio" name="aspecto_${a.id}" value="${v}">
                   <span style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem; text-align: center; opacity: 0.8; word-break: break-word; line-height: 1.2;">${shortLabels[v]}</span>
                   <span style="font-size: 1.25rem; font-weight: 700;">${v}</span>
                 </label>
@@ -272,16 +272,16 @@ export function renderEvaluationFormQuestions(worker) {
           answerFieldHTML = `
             <div class="sino-container" data-aspecto-id="${a.id}">
               <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; margin-bottom: 0;">
-                <input type="radio" name="aspecto_${a.id}" value="si" required> Sí
+                <input type="radio" name="aspecto_${a.id}" value="si"> Sí
               </label>
               <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; margin-bottom: 0;">
-                <input type="radio" name="aspecto_${a.id}" value="no" required> No
+                <input type="radio" name="aspecto_${a.id}" value="no"> No
               </label>
             </div>
           `;
         } else { // text
           answerFieldHTML = `
-            <textarea name="aspecto_${a.id}" rows="2" placeholder="Escriba comentarios y observaciones..." required style="margin-top: 0.5rem;"></textarea>
+            <textarea name="aspecto_${a.id}" rows="2" placeholder="Escriba comentarios y observaciones..." style="margin-top: 0.5rem;"></textarea>
           `;
         }
         
@@ -352,7 +352,7 @@ export function checkEvaluationDateUnique() {
     evalRows.forEach(row => {
       try {
         const parsed = safeParseJSON(row.evaluacion);
-        const rating = parsed ? parsed.valor : '';
+        const rating = parsed ? parsed.valor : null;
         const aspectoId = row.item_evaluacion_id;
         
         // Buscar el elemento de respuesta
@@ -361,13 +361,17 @@ export function checkEvaluationDateUnique() {
           const tipo = aspectoRow.getAttribute('data-tipo');
           
           if (tipo === 'rango1,4') {
-            selectRangoOption(aspectoId, parseInt(rating));
+            if (rating !== null && rating !== undefined && rating !== '') {
+              selectRangoOption(aspectoId, parseInt(rating));
+            }
           } else if (tipo === 'si/no') {
-            const radio = aspectoRow.querySelector(`input[value="${rating.toLowerCase()}"]`);
-            if (radio) radio.checked = true;
+            if (rating !== null && rating !== undefined && rating !== '') {
+              const radio = aspectoRow.querySelector(`input[value="${rating.toLowerCase()}"]`);
+              if (radio) radio.checked = true;
+            }
           } else {
             const textarea = aspectoRow.querySelector('textarea');
-            if (textarea) textarea.value = rating;
+            if (textarea) textarea.value = rating || '';
           }
           
           // Deshabilitar campos si está cerrada
@@ -448,14 +452,12 @@ export async function saveEvaluation(event) {
   const rows = document.querySelectorAll('.aspecto-row');
   const insertPayloads = [];
   
-  let valid = true;
-  
   rows.forEach(r => {
     const aspectoId = parseInt(r.getAttribute('data-aspecto-id'));
     const claseId = parseInt(r.getAttribute('data-clase-id'));
     const tipo = r.getAttribute('data-tipo');
     
-    let answerValue = '';
+    let answerValue = null;
     
     if (tipo === 'rango1,4') {
       const checkedRadio = r.querySelector('input[type="radio"]:checked');
@@ -465,12 +467,7 @@ export async function saveEvaluation(event) {
       if (checkedRadio) answerValue = checkedRadio.value;
     } else {
       const textarea = r.querySelector('textarea');
-      if (textarea) answerValue = textarea.value.trim();
-    }
-    
-    if (!answerValue) {
-      valid = false;
-      return;
+      if (textarea) answerValue = textarea.value.trim() || null;
     }
     
     // Determinar si ya existía una fila para este aspecto
@@ -493,11 +490,6 @@ export async function saveEvaluation(event) {
     
     insertPayloads.push(payload);
   });
-  
-  if (!valid) {
-    showToast("Por favor responda a todos los aspectos de evaluación.", "error");
-    return;
-  }
   
   try {
     const { error } = await state.supabaseClient

@@ -1,0 +1,57 @@
+<!-- MODAL: DETALLE EVALUACION -->
+<dialog id="detalleEvaluacionModal">
+  <article style="width: 100%; max-width: 800px; padding: 1.5rem;">
+    <header style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 700; font-size: 1.25rem;"><i class="fa-solid fa-file-invoice text-primary"></i> Detalle de la Evaluación</span>
+      <button aria-label="Close" rel="prev" onclick="closeModal('detalleEvaluacionModal')" style="margin-bottom: 0; padding: 0.25rem 0.5rem; border: none; background: transparent; color: var(--muted-color); font-size: 1.25rem;"><i class="fa-solid fa-xmark"></i></button>
+    </header>
+    
+    <!-- Worker and Evaluation Summary Card -->
+    <div style="background-color: var(--primary-focus); border-left: 5px solid var(--primary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+        <div>
+          <p style="margin: 0; font-size: 0.9rem; color: var(--muted-color);">Colaborador:</p>
+          <strong id="detEvalTrabajador" style="font-size: 1.1rem; color: var(--primary);">Nombre del Colaborador</strong>
+          <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.85rem;">
+            <span>Ficha: <strong id="detEvalFicha">-</strong></span>
+            <span>Cargo: <strong id="detEvalCargo">-</strong></span>
+            <span>Dpto: <strong id="detEvalDepartamento">-</strong></span>
+          </div>
+        </div>
+        <div style="text-align: right; border-left: 1px solid rgba(0,0,0,0.1); padding-left: 1rem;">
+          <p style="margin: 0; font-size: 0.9rem; color: var(--muted-color);">Fecha de Evaluación:</p>
+          <strong id="detEvalFecha" style="font-size: 1.1rem;">00/00/0000</strong>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;">Estado: <span id="detEvalEstado">Abierta</span></p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Aspects Table -->
+    <div class="table-wrapper" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+      <table style="margin-bottom: 0; font-size: 0.875rem;">
+        <thead>
+          <tr style="position: sticky; top: 0; background: var(--card-background-color); z-index: 10; box-shadow: 0 1px 0 var(--border-color);">
+            <th style="width: 180px;">Competencia</th>
+            <th>Aspecto Evaluado</th>
+            <th style="text-align: right; width: 120px;">Respuesta</th>
+            <th style="text-align: right; width: 100px;">Puntaje (%)</th>
+          </tr>
+        </thead>
+        <tbody id="detalleEvaluacionTableBody">
+          <!-- Populated dynamically -->
+        </tbody>
+      </table>
+    </div>
+    
+    <footer style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+      <div>
+        <button type="button" id="btnDeleteEvaluation" class="secondary" style="background-color: #dc2626; border-color: #dc2626; color: #ffffff; padding: 0.4rem 1rem; margin-bottom: 0; font-size: 0.875rem;" onclick="confirmDeleteEvaluation()">
+          <i class="fa-solid fa-trash-can"></i> Eliminar Evaluación
+        </button>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" class="outline secondary" style="padding: 0.4rem 1rem; margin-bottom: 0; font-size: 0.875rem;" onclick="closeModal('detalleEvaluacionModal')">Cerrar</button>
+      </div>
+    </footer>
+  </article>
+</dialog>

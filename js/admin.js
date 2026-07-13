@@ -643,6 +643,8 @@ export function renderCierreEvaluaciones() {
       `<button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="toggleEvaluationStatus('${group.trabajadorId}', '${group.fecha}', false)">Reabrir</button>` : 
       `<button class="primary" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="toggleEvaluationStatus('${group.trabajadorId}', '${group.fecha}', true)"><i class="fa-solid fa-lock"></i> Cerrar</button>`;
       
+    const viewButton = `<button class="outline" style="padding: 0.25rem 0.5rem; margin-bottom: 0; margin-left: 0.25rem; border-color: var(--primary); color: var(--primary);" onclick="showEvaluationDetail('${group.trabajadorId}', '${group.fecha}')" title="Ver Detalle"><i class="fa-solid fa-eye"></i> Ver</button>`;
+
     html += `
       <tr>
         <td>#${index + 1}</td>
@@ -652,6 +654,7 @@ export function renderCierreEvaluaciones() {
         <td>${statusText}</td>
         <td style="text-align: right; white-space: nowrap;">
           ${toggleButton}
+          ${viewButton}
         </td>
       </tr>
     `;
@@ -1130,6 +1133,152 @@ export async function deleteDepartamento(id) {
     showToast("Unidad administrativa eliminada correctamente.");
     await loadCaches();
     renderDepartamentosCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
+export async function showEvaluationDetail(trabajadorId, fecha) {
+  const tId = parseInt(trabajadorId);
+  const worker = state.workersCache.find(w => w.id === tId);
+  
+  await openModal('detalleEvaluacionModal');
+  
+  const workerName = worker ? worker.nombre : `Desconocido (ID: ${tId})`;
+  const workerFicha = worker ? (worker.ficha || 'N/A') : 'N/A';
+  const workerCargo = worker ? (worker.cargo || 'N/A') : 'N/A';
+  const workerDept = worker ? (worker.departamento || 'N/A') : 'N/A';
+  
+  // Buscar evaluaciones correspondientes a esta combinación
+  const workerEvals = state.evaluationsCache.filter(ev => {
+    if (ev.fecha !== fecha) return false;
+    try {
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === tId;
+    } catch(e) { return false; }
+  });
+  
+  const isClosed = workerEvals.some(ev => ev.estado === true);
+  
+  // Rellenar datos de cabecera
+  document.getElementById('detEvalTrabajador').textContent = workerName;
+  document.getElementById('detEvalFicha').textContent = workerFicha;
+  document.getElementById('detEvalCargo').textContent = workerCargo;
+  document.getElementById('detEvalDepartamento').textContent = workerDept;
+  document.getElementById('detEvalFecha').textContent = new Date(fecha + 'T00:00:00').toLocaleDateString();
+  document.getElementById('detEvalEstado').innerHTML = isClosed ? 
+    '<span class="badge" style="background-color: var(--primary); color: #ffffff; padding: 0.1rem 0.4rem; font-size: 0.75rem;">Cerrada</span>' : 
+    '<span class="badge" style="background-color: #eab308; color: #ffffff; padding: 0.1rem 0.4rem; font-size: 0.75rem;">Abierta</span>';
+    
+  // Guardar datos en el botón de eliminar
+  const deleteBtn = document.getElementById('btnDeleteEvaluation');
+  if (deleteBtn) {
+    deleteBtn.setAttribute('data-trabajador-id', tId);
+    deleteBtn.setAttribute('data-fecha', fecha);
+  }
+  
+  // Renderizar la tabla de aspectos
+  const workerTipo = (worker && worker.tipo) ? worker.tipo.toUpperCase().trim() : 'GERENCIAL';
+  const matchingClasses = state.classesCache.filter(c => {
+    const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+    return compTipo === workerTipo;
+  });
+  
+  let tableHtml = '';
+  matchingClasses.forEach(c => {
+    const aspectosDeClase = state.aspectsCache.filter(a => a.clase_id === c.id);
+    
+    aspectosDeClase.forEach(a => {
+      const evRow = workerEvals.find(ev => ev.item_evaluacion_id === a.id);
+      let answerText = 'Sin responder';
+      let pctLabel = '-';
+      
+      if (evRow) {
+        try {
+          const parsed = safeParseJSON(evRow.evaluacion);
+          const val = parsed ? parsed.valor : null;
+          if (val !== null && val !== undefined && val !== '') {
+            if (a.tipo === 'si/no') {
+              answerText = val.toUpperCase();
+            } else if (a.tipo === 'rango1,4') {
+              answerText = val;
+              const valNum = parseFloat(val);
+              const weight = a.ponderacion !== null && a.ponderacion !== undefined ? parseFloat(a.ponderacion) : 0;
+              if (!isNaN(valNum)) {
+                const pct = (valNum / 4) * weight;
+                pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
+              }
+            } else {
+              answerText = val;
+            }
+          }
+        } catch(e) {}
+      }
+      
+      tableHtml += `
+        <tr>
+          <td><strong>${c.titulo}</strong></td>
+          <td style="text-align: justify;"><mark style="background-color: var(--primary-focus); color: var(--primary); border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>${a.descripcion}</td>
+          <td style="text-align: right; font-weight: 600;">${answerText}</td>
+          <td style="text-align: right; font-weight: 600; color: var(--primary);">${pctLabel}</td>
+        </tr>
+      `;
+    });
+  });
+  
+  if (tableHtml === '') {
+    tableHtml = '<tr><td colspan="4" style="text-align: center;">No hay aspectos de evaluación disponibles para este tipo de colaborador.</td></tr>';
+  }
+  
+  document.getElementById('detalleEvaluacionTableBody').innerHTML = tableHtml;
+}
+
+export async function confirmDeleteEvaluation() {
+  const deleteBtn = document.getElementById('btnDeleteEvaluation');
+  if (!deleteBtn) return;
+  const trabajadorId = deleteBtn.getAttribute('data-trabajador-id');
+  const fecha = deleteBtn.getAttribute('data-fecha');
+  
+  if (!trabajadorId || !fecha) return;
+  
+  const confirmDelete = confirm("¿Está seguro de que desea eliminar permanentemente esta evaluación completa?");
+  if (confirmDelete) {
+    await deleteEvaluation(trabajadorId, fecha);
+  }
+}
+
+export async function deleteEvaluation(trabajadorId, fecha) {
+  const tId = parseInt(trabajadorId);
+  
+  const rowsToDelete = state.evaluationsCache.filter(ev => {
+    if (ev.fecha !== fecha) return false;
+    try {
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === tId;
+    } catch (e) {
+      return false;
+    }
+  });
+  
+  const idsToDelete = rowsToDelete.map(r => r.id);
+  
+  if (idsToDelete.length === 0) {
+    showToast("No se encontraron registros de evaluación para eliminar.", "error");
+    return;
+  }
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('evaluacion')
+      .delete()
+      .in('id', idsToDelete);
+      
+    if (error) throw error;
+    
+    showToast("Evaluación eliminada correctamente.");
+    closeModal('detalleEvaluacionModal');
+    await loadCaches();
+    renderCierreEvaluaciones();
   } catch (err) {
     handleRlsError(err);
   }
