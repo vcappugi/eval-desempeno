@@ -3,6 +3,7 @@
 import { state } from './state.js?v=2.1.6';
 import { showToast, handleRlsError, openModal, closeModal, safeParseJSON } from './utils.js?v=2.1.6';
 import { loadCaches } from './supabase.js?v=2.1.6';
+import { printEvaluationReport } from './evaluations.js?v=2.1.6';
 
 // ================= CRUD: TRABAJADORES =================
 
@@ -1347,105 +1348,27 @@ export function changeCierrePage(direction) {
 }
 
 export function printEvaluationDetail() {
-  const workerName = document.getElementById('detEvalTrabajador').textContent;
-  const workerFicha = document.getElementById('detEvalFicha').textContent;
-  const workerCargo = document.getElementById('detEvalCargo').textContent;
-  const workerDept = document.getElementById('detEvalDepartamento').textContent;
-  const evalFecha = document.getElementById('detEvalFecha').textContent;
-  const evalEstado = document.getElementById('detEvalEstado').textContent;
-  const tableRows = document.getElementById('detalleEvaluacionTableBody').innerHTML;
+  const deleteBtn = document.getElementById('btnDeleteEvaluation');
+  if (!deleteBtn) return;
+  const workerId = parseInt(deleteBtn.getAttribute('data-trabajador-id'));
+  const fecha = deleteBtn.getAttribute('data-fecha');
   
-  // Create printing container
-  const printDiv = document.createElement('div');
-  printDiv.id = 'print-evaluation-container';
-  printDiv.innerHTML = `
-    <div style="font-family: Arial, sans-serif; padding: 2rem; color: #000000; background: #ffffff;">
-      <!-- Header with Logo -->
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2e7d32; padding-bottom: 1rem; margin-bottom: 1.5rem;">
-        <div>
-          <img src="images/BEL_LOGO.jpg" alt="BEL Logo" style="height: 50px;" onerror="this.src='https://placehold.co/120x80/2e7d32/ffffff?text=BEL+Group'">
-        </div>
-        <div style="text-align: right;">
-          <h2 style="margin: 0; color: #2e7d32; font-size: 1.5rem;">Reporte de Evaluación</h2>
-          <small style="color: #666666;">Corporación BEL</small>
-        </div>
-      </div>
-      
-      <!-- Worker details -->
-      <div style="background-color: #f1f8e9; border-left: 5px solid #2e7d32; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; font-size: 0.9rem;">
-        <div>
-          <p style="margin: 0 0 0.5rem 0; color: #666666;">Colaborador:</p>
-          <strong style="font-size: 1.2rem; color: #2e7d32;">${workerName}</strong>
-          <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
-            <span>Ficha: <strong>${workerFicha}</strong></span>
-            <span>Cargo: <strong>${workerCargo}</strong></span>
-            <span>Departamento: <strong>${workerDept}</strong></span>
-          </div>
-        </div>
-        <div style="text-align: right; border-left: 1px solid rgba(0,0,0,0.1); padding-left: 1rem;">
-          <p style="margin: 0 0 0.5rem 0; color: #666666;">Fecha:</p>
-          <strong style="font-size: 1.2rem;">${evalFecha}</strong>
-          <p style="margin: 0.5rem 0 0 0;">Estado: <strong>${evalEstado}</strong></p>
-        </div>
-      </div>
-      
-      <!-- Table of Aspects -->
-      <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem;">
-        <thead>
-          <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
-            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left; width: 25%;">Competencia</th>
-            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Aspecto Evaluado</th>
-            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; width: 15%;">Respuesta</th>
-            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; width: 15%;">Puntaje (%)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-      
-      <!-- Footer note -->
-      <div style="margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #888888; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
-        Este documento es un reporte oficial de evaluación de desempeño generado por el Sistema de Evaluación de Desempeño - BEL.
-      </div>
-    </div>
-  `;
+  if (!workerId || !fecha) return;
   
-  // Style override for print view to isolate print area
-  const style = document.createElement('style');
-  style.id = 'print-evaluation-style';
-  style.innerHTML = `
-    @media print {
-      body > *:not(#print-evaluation-container) {
-        display: none !important;
-      }
-      #print-evaluation-container {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-      }
-      #print-evaluation-container td, #print-evaluation-container th {
-        border: 1px solid #cbd5e1 !important;
-        padding: 8px !important;
-      }
-      #print-evaluation-container mark {
-        background-color: #f1f5f9 !important;
-        color: #000000 !important;
-        border: 1px solid #cbd5e1 !important;
-      }
-    }
-  `;
+  const worker = state.workersCache.find(w => w.id === workerId);
   
-  document.head.appendChild(style);
-  document.body.appendChild(printDiv);
+  // Buscar evaluaciones correspondientes a esta combinación
+  const workerEvals = state.evaluationsCache.filter(ev => {
+    if (ev.fecha !== fecha) return false;
+    try {
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === workerId;
+    } catch(e) { return false; }
+  });
   
-  window.print();
+  const isClosed = workerEvals.some(ev => ev.estado === true);
+  const estadoText = isClosed ? 'Cerrada' : 'Abierta';
   
-  setTimeout(() => {
-    printDiv.remove();
-    style.remove();
-  }, 1000);
+  printEvaluationReport(worker, fecha, workerEvals, estadoText);
 }
 

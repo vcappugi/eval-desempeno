@@ -5,7 +5,7 @@ import { initSupabase } from './supabase.js?v=2.1.6';
 import { closeModal } from './utils.js?v=2.1.6';
 import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js?v=2.1.6';
 import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js?v=2.1.6';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, handleEvalWorkerDeptFilter } from './evaluations.js?v=2.1.6';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, handleEvalWorkerDeptFilter, printMainEvaluationForm } from './evaluations.js?v=2.1.6';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -83,6 +83,7 @@ window.saveEvaluation = saveEvaluation;
 window.handleEvalWorkerSearch = handleEvalWorkerSearch;
 window.handleEvalWorkerDeptFilter = handleEvalWorkerDeptFilter;
 window.changeEvalsPage = changeEvalsPage;
+window.printMainEvaluationForm = printMainEvaluationForm;
 
 // CRUD Trabajadores
 window.editTrabajador = editTrabajador;

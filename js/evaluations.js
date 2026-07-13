@@ -507,3 +507,290 @@ export async function saveEvaluation(event) {
     handleRlsError(err);
   }
 }
+
+export function printMainEvaluationForm() {
+  const workerId = parseInt(document.getElementById('evaluadoIdInput').value);
+  const worker = state.workersCache.find(w => w.id === workerId);
+  const fecha = document.getElementById('evalFecha').value;
+  const estadoText = document.getElementById('evalEstadoLabel').value;
+  
+  // Leer los valores directamente del formulario en el DOM
+  const rows = document.querySelectorAll('#dynamicCompetenciesContainer .aspecto-row');
+  const workerEvals = [];
+  
+  rows.forEach(r => {
+    const aspectoId = parseInt(r.getAttribute('data-aspecto-id'));
+    const claseId = parseInt(r.getAttribute('data-clase-id'));
+    const tipo = r.getAttribute('data-tipo');
+    
+    let answerValue = null;
+    if (tipo === 'rango1,4') {
+      const checkedRadio = r.querySelector('input[type="radio"]:checked');
+      if (checkedRadio) answerValue = checkedRadio.value;
+    } else if (tipo === 'si/no') {
+      const checkedRadio = r.querySelector('input[type="radio"]:checked');
+      if (checkedRadio) answerValue = checkedRadio.value;
+    } else {
+      const textarea = r.querySelector('textarea');
+      if (textarea) answerValue = textarea.value.trim() || null;
+    }
+    
+    workerEvals.push({
+      clase_id: claseId,
+      item_evaluacion_id: aspectoId,
+      evaluacion: JSON.stringify({
+        trabajador_id: workerId,
+        valor: answerValue
+      })
+    });
+  });
+  
+  printEvaluationReport(worker, fecha, workerEvals, estadoText);
+}
+
+export function printEvaluationReport(worker, fecha, workerEvals, estadoText) {
+  const workerName = worker ? worker.nombre : 'N/A';
+  const workerFicha = worker ? (worker.ficha || 'N/A') : 'N/A';
+  const workerCargo = worker ? (worker.cargo || 'N/A') : 'N/A';
+  const workerDept = worker ? (worker.departamento || 'N/A') : 'N/A';
+  const workerTipo = worker ? (worker.tipo || 'GERENCIAL').toUpperCase().trim() : 'GERENCIAL';
+
+  // 1. Calcular puntajes por competencia y general
+  const compWeightedSuma = {};
+  const compWeightSum = {};
+  const compUnweightedSuma = {};
+  const compCuenta = {};
+  const compAvgScores = [];
+
+  workerEvals.forEach(ev => {
+    try {
+      const parsed = typeof ev.evaluacion === 'string' ? JSON.parse(ev.evaluacion) : ev.evaluacion;
+      const rawValor = parsed ? parsed.valor : null;
+      const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
+      
+      const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+      if (aspecto && aspecto.tipo === 'rango1,4') {
+        const claseId = ev.clase_id;
+        const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
+        
+        if (!compWeightedSuma[claseId]) {
+          compWeightedSuma[claseId] = 0;
+          compWeightSum[claseId] = 0;
+          compUnweightedSuma[claseId] = 0;
+          compCuenta[claseId] = 0;
+        }
+        
+        if (weight > 0) {
+          compWeightedSuma[claseId] += valor * weight;
+          compWeightSum[claseId] += weight;
+        }
+        compUnweightedSuma[claseId] += valor;
+        compCuenta[claseId]++;
+      }
+    } catch(e) {}
+  });
+
+  // Calcular promedios por competencia
+  state.classesCache.forEach(c => {
+    const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+    if (compTipo !== workerTipo) return;
+
+    const weightedSuma = compWeightedSuma[c.id] || 0;
+    const weightSum = compWeightSum[c.id] || 0;
+    const unweightedSuma = compUnweightedSuma[c.id] || 0;
+    const cuenta = compCuenta[c.id] || 0;
+    
+    if (cuenta > 0) {
+      const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
+      compAvgScores.push({
+        id: c.id,
+        titulo: c.titulo,
+        promedio: promedio,
+        cuenta: cuenta
+      });
+    }
+  });
+
+  const promedioGeneral = compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0;
+  const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
+
+  // Clasificar resultado
+  let clasificacion = 'No evaluado';
+  if (porcentajeGeneral >= 90) clasificacion = 'Excelente (Sobresaliente)';
+  else if (porcentajeGeneral >= 75) clasificacion = 'Bueno (Cumple expectativas)';
+  else if (porcentajeGeneral >= 55) clasificacion = 'Regular (Requiere tutoría)';
+  else if (porcentajeGeneral > 0) clasificacion = 'Deficiente (Bajo desempeño)';
+
+  // 2. Generar filas de la tabla de aspectos
+  let tableHtml = '';
+  const matchingClasses = state.classesCache.filter(c => {
+    const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+    return compTipo === workerTipo;
+  });
+
+  matchingClasses.forEach(c => {
+    const aspectosDeClase = state.aspectsCache.filter(a => a.clase_id === c.id);
+    
+    aspectosDeClase.forEach(a => {
+      const evRow = workerEvals.find(ev => ev.item_evaluacion_id === a.id);
+      let answerText = 'Sin responder';
+      let pctLabel = '-';
+      
+      if (evRow) {
+        try {
+          const parsed = typeof evRow.evaluacion === 'string' ? JSON.parse(evRow.evaluacion) : evRow.evaluacion;
+          const val = parsed ? parsed.valor : null;
+          if (val !== null && val !== undefined && val !== '') {
+            if (a.tipo === 'si/no') {
+              answerText = val.toUpperCase();
+            } else if (a.tipo === 'rango1,4') {
+              answerText = val;
+              const valNum = parseFloat(val);
+              const weight = a.ponderacion !== null && a.ponderacion !== undefined ? parseFloat(a.ponderacion) : 0;
+              if (!isNaN(valNum)) {
+                const pct = (valNum / 4) * weight;
+                pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
+              }
+            } else {
+              answerText = val;
+            }
+          }
+        } catch(e) {}
+      }
+      
+      tableHtml += `
+        <tr>
+          <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>${c.titulo}</strong></td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: justify;"><mark style="background-color: #f1f5f9; color: #000000; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>${a.descripcion}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: 600;">${answerText}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: 600; color: #2e7d32;">${pctLabel}</td>
+        </tr>
+      `;
+    });
+  });
+
+  // 3. Generar filas de la tabla de totales por competencia
+  let compTotalsHtml = '';
+  compAvgScores.forEach(item => {
+    const pct = (item.promedio / 4) * 100;
+    compTotalsHtml += `
+      <tr>
+        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>${item.titulo}</strong></td>
+        <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: 600;">${item.promedio.toFixed(2)} / 4.00</td>
+        <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: 600; color: #2e7d32;">${pct.toFixed(1)}%</td>
+      </tr>
+    `;
+  });
+
+  // 4. Crear contenedor de impresión
+  const printDiv = document.createElement('div');
+  printDiv.id = 'print-evaluation-container';
+  printDiv.innerHTML = `
+    <div style="font-family: Arial, sans-serif; padding: 2rem; color: #000000; background: #ffffff;">
+      <!-- Membrete con Logo -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2e7d32; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <img src="images/BEL_LOGO.jpg" alt="BEL Logo" style="height: 50px;" onerror="this.src='https://placehold.co/120x80/2e7d32/ffffff?text=BEL+Group'">
+        </div>
+        <div style="text-align: right;">
+          <h2 style="margin: 0; color: #2e7d32; font-size: 1.5rem;">Reporte de Evaluación</h2>
+          <small style="color: #666666;">Corporación BEL</small>
+        </div>
+      </div>
+      
+      <!-- Ficha del Colaborador -->
+      <div style="background-color: #f1f8e9; border-left: 5px solid #2e7d32; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; font-size: 0.9rem;">
+        <div>
+          <p style="margin: 0 0 0.5rem 0; color: #666666;">Colaborador:</p>
+          <strong style="font-size: 1.2rem; color: #2e7d32;">${workerName}</strong>
+          <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+            <span>Ficha: <strong>${workerFicha}</strong></span>
+            <span>Cargo: <strong>${workerCargo}</strong></span>
+            <span>Departamento: <strong>${workerDept}</strong></span>
+          </div>
+        </div>
+        <div style="text-align: right; border-left: 1px solid rgba(0,0,0,0.1); padding-left: 1rem;">
+          <p style="margin: 0 0 0.5rem 0; color: #666666;">Fecha:</p>
+          <strong style="font-size: 1.2rem;">${new Date(fecha + 'T00:00:00').toLocaleDateString()}</strong>
+          <p style="margin: 0.5rem 0 0 0;">Estado: <strong>${estadoText}</strong></p>
+        </div>
+      </div>
+
+      <!-- Cuadro de Resultado General -->
+      <div style="border: 2px solid #2e7d32; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: #f9fafb;">
+        <div>
+          <h4 style="margin: 0; color: #2e7d32; font-size: 1.1rem; text-transform: uppercase;">Resultado General del Trabajador</h4>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #555555;">Clasificación: <strong>${clasificacion}</strong></p>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 2.25rem; font-weight: 800; color: #2e7d32; line-height: 1;">${porcentajeGeneral}%</div>
+          <small style="color: #666666; font-size: 0.75rem;">sobre el 100% de la ponderación</small>
+        </div>
+      </div>
+      
+      <!-- Tabla de Totales por Competencia -->
+      <h3 style="color: #2e7d32; font-size: 1.1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Resumen de Resultados por Competencia</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.85rem;">
+        <thead>
+          <tr style="background-color: #f1f5f9;">
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Competencia / Dimensión</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; width: 25%;">Promedio (Escala 1.0 - 4.0)</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; width: 25%;">Cumplimiento (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${compTotalsHtml}
+        </tbody>
+      </table>
+
+      <!-- Tabla de Aspectos Detallados -->
+      <h3 style="color: #2e7d32; font-size: 1.1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Detalle de Respuestas por Factor</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+        <thead>
+          <tr style="background-color: #f1f5f9;">
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 25%;">Competencia</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left;">Aspecto Específico Evaluado</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; width: 15%;">Respuesta</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; width: 15%;">Puntaje (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableHtml}
+        </tbody>
+      </table>
+      
+      <!-- Nota de Cierre -->
+      <div style="margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #888888; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+        Este documento es un reporte oficial de evaluación de desempeño generado por el Sistema de Evaluación de Desempeño - BEL.
+      </div>
+    </div>
+  `;
+
+  // Estilo de impresión
+  const style = document.createElement('style');
+  style.id = 'print-evaluation-style';
+  style.innerHTML = `
+    @media print {
+      body > *:not(#print-evaluation-container) {
+        display: none !important;
+      }
+      #print-evaluation-container {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(printDiv);
+  
+  window.print();
+  
+  setTimeout(() => {
+    printDiv.remove();
+    style.remove();
+  }, 1000);
+}
