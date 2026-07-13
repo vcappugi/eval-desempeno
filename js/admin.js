@@ -864,10 +864,10 @@ export function renderFechasEvalCrud() {
   const tbody = document.getElementById('fechasEvalTableBody');
   if (!tbody) return;
   
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando fechas...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando fechas...</td></tr>';
   
   if (state.fechaEvalCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No hay fechas de evaluación registradas.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No hay fechas de evaluación registradas.</td></tr>';
     return;
   }
   
@@ -879,7 +879,6 @@ export function renderFechasEvalCrud() {
     const tieneEvaluaciones = state.evaluationsCache.some(ev => {
       try {
         const parsed = safeParseJSON(ev.evaluacion);
-        // O simplemente comparar ev.fecha con fe.fecha
         return ev.fecha === fe.fecha;
       } catch (e) {
         return false;
@@ -904,10 +903,15 @@ export function renderFechasEvalCrud() {
       `;
     }
     
+    const publicadoLabel = fe.publicado ? 
+      '<span class="badge" style="background-color: var(--primary); color: #ffffff; padding: 0.1rem 0.4rem; font-size: 0.75rem;">SI</span>' : 
+      '<span class="badge" style="background-color: #ef4444; color: #ffffff; padding: 0.1rem 0.4rem; font-size: 0.75rem;">NO</span>';
+
     html += `
       <tr>
         <td><strong>${fe.id}</strong></td>
         <td>${new Date(fe.fecha + 'T00:00:00').toLocaleDateString()}</td>
+        <td>${publicadoLabel}</td>
         <td>${createdDate}</td>
         <td style="text-align: right; white-space: nowrap;">
           ${actionButtons}
@@ -923,6 +927,10 @@ export async function openFechaEvalModal() {
   document.getElementById('fechaEvalForm').reset();
   document.getElementById('fechaEvalIdInput').value = '';
   document.getElementById('fechaEvalFecha').disabled = false;
+  const publicadoSelect = document.getElementById('fechaEvalPublicado');
+  if (publicadoSelect) {
+    publicadoSelect.value = 'true';
+  }
   document.getElementById('fechaEvalModalTitle').textContent = 'Agregar Fecha de Evaluación';
 }
 
@@ -941,6 +949,10 @@ export async function editFechaEval(id) {
   document.getElementById('fechaEvalIdInput').value = fe.id;
   document.getElementById('fechaEvalFecha').value = fe.fecha;
   document.getElementById('fechaEvalFecha').disabled = false;
+  const publicadoSelect = document.getElementById('fechaEvalPublicado');
+  if (publicadoSelect) {
+    publicadoSelect.value = fe.publicado ? 'true' : 'false';
+  }
   
   document.getElementById('fechaEvalModalTitle').textContent = 'Modificar Fecha de Evaluación';
 }
@@ -949,6 +961,8 @@ export async function saveFechaEval(event) {
   if (event) event.preventDefault();
   const id = document.getElementById('fechaEvalIdInput').value;
   const fecha = document.getElementById('fechaEvalFecha').value;
+  const publicadoSelect = document.getElementById('fechaEvalPublicado');
+  const publicado = publicadoSelect ? (publicadoSelect.value === 'true') : true;
   
   if (!fecha) {
     showToast("Por favor seleccione una fecha.", "error");
@@ -974,7 +988,7 @@ export async function saveFechaEval(event) {
     return;
   }
   
-  const payload = { fecha };
+  const payload = { fecha, publicado };
   
   try {
     if (id) {

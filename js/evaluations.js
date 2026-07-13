@@ -152,11 +152,12 @@ export function startEvaluation(trabajadorId) {
   // Resetear formulario
   document.getElementById('evaluacionIdInput').value = '';
   
-  // Poblar select de fechas de evaluación
+  // Poblar select de fechas de evaluación (sólo fechas publicadas)
   const selectFecha = document.getElementById('evalFecha');
+  const publishedDates = state.fechaEvalCache.filter(fe => fe.publicado === true);
   if (selectFecha) {
     selectFecha.innerHTML = '';
-    state.fechaEvalCache.forEach(fe => {
+    publishedDates.forEach(fe => {
       const option = document.createElement('option');
       option.value = fe.fecha;
       option.textContent = new Date(fe.fecha + 'T00:00:00').toLocaleDateString();
@@ -164,10 +165,10 @@ export function startEvaluation(trabajadorId) {
     });
   }
   
-  if (state.fechaEvalCache.length > 0) {
-    selectFecha.value = state.fechaEvalCache[0].fecha;
+  if (publishedDates.length > 0) {
+    selectFecha.value = publishedDates[0].fecha;
   } else {
-    showToast("No hay fechas de evaluación registradas en el sistema.", "warning");
+    showToast("No hay fechas de evaluación publicadas en el sistema.", "warning");
   }
   
   document.getElementById('evalEstadoLabel').value = 'Abierta (Editable)';

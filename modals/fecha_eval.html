@@ -13,6 +13,14 @@
         <input type="date" id="fechaEvalFecha" required>
       </label>
       
+      <label for="fechaEvalPublicado">
+        ¿Publicado?
+        <select id="fechaEvalPublicado">
+          <option value="true">SI</option>
+          <option value="false">NO</option>
+        </select>
+      </label>
+      
       <footer style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
         <button type="button" class="outline secondary" onclick="closeModal('fechaEvalModal')">Cancelar</button>
         <button type="submit" class="primary">Guardar</button>
