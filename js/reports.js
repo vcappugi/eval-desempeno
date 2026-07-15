@@ -50,8 +50,11 @@ export function renderIndicadoresGenerales() {
       // Si el aspecto es de tipo numérico (rango1,4), calculamos promedios
       const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
       if (aspecto && aspecto.tipo === 'rango1,4') {
-        const valNum = (valor !== null && valor !== undefined && valor !== '') ? parseFloat(valor) : 0;
+        let valNum = (valor !== null && valor !== undefined && valor !== '') ? parseFloat(valor) : 0;
         if (!isNaN(valNum)) {
+          if (aspecto.revverse && valNum >= 1 && valNum <= 4) {
+            valNum = 5 - valNum;
+          }
           const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
           const claseId = ev.clase_id;
           
@@ -103,10 +106,20 @@ export function renderIndicadoresGenerales() {
     const cuenta = compCuenta[c.id] || 0;
     const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (cuenta > 0 ? (unweightedSuma / cuenta) : null);
     if (promedio !== null) {
-      compAvgScores.push(promedio);
+      compAvgScores.push({ id: c.id, promedio });
     }
   });
-  const promedioGeneral = compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val, 0) / compAvgScores.length : 0;
+  
+  let totalWeight = 0;
+  let weightedSum = 0;
+  compAvgScores.forEach(item => {
+    const compObj = state.classesCache.find(c => c.id === item.id);
+    const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+    weightedSum += item.promedio * (weight / 100);
+    totalWeight += weight;
+  });
+  
+  const promedioGeneral = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0);
   document.getElementById('indPromedioGeneral').textContent = `${promedioGeneral.toFixed(1)} / 4`;
   
   // 4. Tasa de Participación (% de personal evaluado)
@@ -237,15 +250,20 @@ export async function showWorkerChartModal(workerId) {
           compCuenta[claseId] = 0;
         }
         
+        let valToUse = valor;
+        if (aspecto.revverse && valor >= 1 && valor <= 4) {
+          valToUse = 5 - valor;
+        }
+        
         if (weight > 0) {
-          compWeightedSuma[claseId] += valor * weight;
+          compWeightedSuma[claseId] += valToUse * weight;
           compWeightSum[claseId] += weight;
           
-          totalWeightedSuma += valor * weight;
+          totalWeightedSuma += valToUse * weight;
           totalWeightSum += weight;
         }
         
-        compUnweightedSuma[claseId] += valor;
+        compUnweightedSuma[claseId] += valToUse;
         compCuenta[claseId]++;
         
         totalUnweightedSuma += valor;
@@ -263,10 +281,20 @@ export async function showWorkerChartModal(workerId) {
     const cuenta = compCuenta[c.id] || 0;
     if (cuenta > 0) {
       const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
-      compAvgScores.push(promedio);
+      compAvgScores.push({ id: c.id, promedio });
     }
   });
-  const promedioGeneral = compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val, 0) / compAvgScores.length : 0;
+  
+  let totalWeight = 0;
+  let weightedSum = 0;
+  compAvgScores.forEach(item => {
+    const compObj = state.classesCache.find(c => c.id === item.id);
+    const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+    weightedSum += item.promedio * (weight / 100);
+    totalWeight += weight;
+  });
+  
+  const promedioGeneral = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0);
   const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
   
   percentSpan.textContent = `${porcentajeGeneral}%`;
@@ -590,12 +618,17 @@ export function renderReporteColaboradores() {
             subCompCuenta[claseId] = 0;
           }
           
+          let valToUse = valor;
+          if (aspecto.revverse && valor >= 1 && valor <= 4) {
+            valToUse = 5 - valor;
+          }
+          
           if (weight > 0) {
-            subCompWeightedSuma[claseId] += valor * weight;
+            subCompWeightedSuma[claseId] += valToUse * weight;
             subCompWeightSum[claseId] += weight;
           }
           
-          subCompUnweightedSuma[claseId] += valor;
+          subCompUnweightedSuma[claseId] += valToUse;
           subCompCuenta[claseId]++;
         }
       } catch(e) {}
@@ -609,11 +642,20 @@ export function renderReporteColaboradores() {
       const cuenta = subCompCuenta[c.id] || 0;
       if (cuenta > 0) {
         const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
-        compScores.push(promedio);
+        compScores.push({ id: c.id, promedio });
       }
     });
     
-    const workerAvg = compScores.length > 0 ? compScores.reduce((sum, val) => sum + val, 0) / compScores.length : null;
+    let totalWeight = 0;
+    let weightedSum = 0;
+    compScores.forEach(item => {
+      const compObj = state.classesCache.find(c => c.id === item.id);
+      const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+      weightedSum += item.promedio * (weight / 100);
+      totalWeight += weight;
+    });
+    
+    const workerAvg = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compScores.length > 0 ? compScores.reduce((sum, val) => sum + val.promedio, 0) / compScores.length : null);
     const promedioGeneral = workerAvg !== null ? workerAvg.toFixed(1) : 'N/A';
     
     let nivelDesempeno = 'Sin Evaluaciones';
@@ -765,12 +807,17 @@ export function renderReporteColaboradores() {
                       groupCompCuenta[claseId] = 0;
                     }
                     
+                    let valToUse = valor;
+                    if (aspecto.revverse && valor >= 1 && valor <= 4) {
+                      valToUse = 5 - valor;
+                    }
+                    
                     if (weight > 0) {
-                      groupCompWeightedSuma[claseId] += valor * weight;
+                      groupCompWeightedSuma[claseId] += valToUse * weight;
                       groupCompWeightSum[claseId] += weight;
                     }
                     
-                    groupCompUnweightedSuma[claseId] += valor;
+                    groupCompUnweightedSuma[claseId] += valToUse;
                     groupCompCuenta[claseId]++;
                   }
                 } catch(e) {}
@@ -784,11 +831,20 @@ export function renderReporteColaboradores() {
                 const cuenta = groupCompCuenta[c.id] || 0;
                 if (cuenta > 0) {
                   const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
-                  groupCompScores.push(promedio);
+                  groupCompScores.push({ id: c.id, promedio });
                 }
               });
               
-              const groupAvg = groupCompScores.length > 0 ? groupCompScores.reduce((sum, val) => sum + val, 0) / groupCompScores.length : 0;
+              let totalWeight = 0;
+              let weightedSum = 0;
+              groupCompScores.forEach(item => {
+                const compObj = state.classesCache.find(c => c.id === item.id);
+                const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+                weightedSum += item.promedio * (weight / 100);
+                totalWeight += weight;
+              });
+              
+              const groupAvg = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (groupCompScores.length > 0 ? groupCompScores.reduce((sum, val) => sum + val.promedio, 0) / groupCompScores.length : 0);
               const groupPct = groupAvg > 0 ? (groupAvg / 4) * 100 : 0;
               
               return `
@@ -830,7 +886,11 @@ export function renderReporteColaboradores() {
                                   const valNum = parseFloat(ratingVal);
                                   const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
                                   if (!isNaN(valNum)) {
-                                    const pct = (valNum / 4) * weight;
+                                    let displayedVal = valNum;
+                                    if (aspect.revverse && valNum >= 1 && valNum <= 4) {
+                                      displayedVal = 5 - valNum;
+                                    }
+                                    const pct = (displayedVal / 4) * weight;
                                     pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
                                   }
                                 }
@@ -841,7 +901,7 @@ export function renderReporteColaboradores() {
                           return `
                             <tr>
                               <td style="font-size: 0.85rem;"><strong>${compLabel}</strong></td>
-                              <td style="font-size: 0.85rem; text-align: justify;">${aspectLabel}</td>
+                              <td style="font-size: 0.85rem; text-align: justify;">${aspectLabel}${aspect && aspect.revverse ? ' <small style="background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; border-radius: 4px; padding: 1px 4px; font-size: 0.7rem; font-weight: 600;">Inversa</small>' : ''}</td>
                               <td style="text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--contrast);">${ratingVal}</td>
                               <td style="text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--primary);">${pctLabel}</td>
                             </tr>
@@ -1021,12 +1081,17 @@ export function renderReporteColaboradores() {
             subCompCuenta[claseId] = 0;
           }
           
+          let valToUse = valor;
+          if (aspecto.revverse && valor >= 1 && valor <= 4) {
+            valToUse = 5 - valor;
+          }
+          
           if (weight > 0) {
-            subCompWeightedSuma[claseId] += valor * weight;
+            subCompWeightedSuma[claseId] += valToUse * weight;
             subCompWeightSum[claseId] += weight;
           }
           
-          subCompUnweightedSuma[claseId] += valor;
+          subCompUnweightedSuma[claseId] += valToUse;
           subCompCuenta[claseId]++;
         }
       } catch(e) {}

@@ -26,10 +26,16 @@
         </select>
       </label>
       
-      <label for="compOrden">
-        Orden de Visualización
-        <input type="number" id="compOrden" required min="1">
-      </label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <label for="compOrden">
+          Orden de Visualización
+          <input type="number" id="compOrden" required min="1">
+        </label>
+        <label for="compPeso">
+          Peso / Ponderación (%)
+          <input type="number" id="compPeso" required min="0" max="100" step="any" placeholder="0">
+        </label>
+      </div>
       
       <footer style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
         <button type="button" class="outline secondary" onclick="closeModal('competenciaModal')">Cancelar</button>

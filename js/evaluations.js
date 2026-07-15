@@ -567,7 +567,7 @@ export function printEvaluationReport(worker, fecha, workerEvals, estadoText) {
     try {
       const parsed = typeof ev.evaluacion === 'string' ? JSON.parse(ev.evaluacion) : ev.evaluacion;
       const rawValor = parsed ? parsed.valor : null;
-      const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
+      let valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
       
       const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
       if (aspecto && aspecto.tipo === 'rango1,4') {
@@ -581,11 +581,16 @@ export function printEvaluationReport(worker, fecha, workerEvals, estadoText) {
           compCuenta[claseId] = 0;
         }
         
+        let valToUse = valor;
+        if (aspecto.revverse && valor >= 1 && valor <= 4) {
+          valToUse = 5 - valor;
+        }
+        
         if (weight > 0) {
-          compWeightedSuma[claseId] += valor * weight;
+          compWeightedSuma[claseId] += valToUse * weight;
           compWeightSum[claseId] += weight;
         }
-        compUnweightedSuma[claseId] += valor;
+        compUnweightedSuma[claseId] += valToUse;
         compCuenta[claseId]++;
       }
     } catch(e) {}
@@ -612,7 +617,16 @@ export function printEvaluationReport(worker, fecha, workerEvals, estadoText) {
     }
   });
 
-  const promedioGeneral = compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0;
+  let totalWeight = 0;
+  let weightedSum = 0;
+  compAvgScores.forEach(item => {
+    const compObj = state.classesCache.find(c => c.id === item.id);
+    const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+    weightedSum += item.promedio * (weight / 100);
+    totalWeight += weight;
+  });
+
+  const promedioGeneral = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0);
   const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
 
   // Clasificar resultado
@@ -646,10 +660,14 @@ export function printEvaluationReport(worker, fecha, workerEvals, estadoText) {
               answerText = val.toUpperCase();
             } else if (a.tipo === 'rango1,4') {
               answerText = val;
-              const valNum = parseFloat(val);
+              let valNum = parseFloat(val);
               const weight = a.ponderacion !== null && a.ponderacion !== undefined ? parseFloat(a.ponderacion) : 0;
               if (!isNaN(valNum)) {
-                const pct = (valNum / 4) * weight;
+                let displayedVal = valNum;
+                if (a.revverse && valNum >= 1 && valNum <= 4) {
+                  displayedVal = 5 - valNum;
+                }
+                const pct = (displayedVal / 4) * weight;
                 pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
               }
             } else {
@@ -662,7 +680,7 @@ export function printEvaluationReport(worker, fecha, workerEvals, estadoText) {
       tableHtml += `
         <tr>
           <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>${c.titulo}</strong></td>
-          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: justify;"><mark style="background-color: #f1f5f9; color: #000000; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>${a.descripcion}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: justify;"><mark style="background-color: #f1f5f9; color: #000000; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>${a.descripcion}${a.revverse ? ' <small style="background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; border-radius: 4px; padding: 1px 4px; font-size: 0.7rem; font-weight: 600;">Inversa</small>' : ''}</td>
           <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: 600;">${answerText}</td>
           <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: 600; color: #2e7d32;">${pctLabel}</td>
         </tr>

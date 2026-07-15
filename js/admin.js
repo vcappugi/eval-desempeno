@@ -303,7 +303,10 @@ export function renderCompetenciasCrud() {
         <div>
           <div class="competencia-header">
             <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">${c.titulo}</h4>
-            <span class="competencia-badge">Orden: ${c.orden}</span>
+            <div style="display: flex; gap: 0.25rem;">
+              <span class="competencia-badge">Orden: ${c.orden}</span>
+              <span class="competencia-badge" style="background-color: var(--primary); color: #ffffff;">Peso: ${c.peso !== null && c.peso !== undefined ? c.peso : 0}%</span>
+            </div>
           </div>
           <p style="font-size: 0.875rem; margin-bottom: 0; color: var(--muted-color); text-align: justify;">
             ${c.descripcion || 'Sin descripción.'}
@@ -331,6 +334,7 @@ export async function openCompetenciaModal() {
   await openModal('competenciaModal');
   document.getElementById('competenciaForm').reset();
   document.getElementById('competenciaIdInput').value = '';
+  document.getElementById('compPeso').value = '';
   document.getElementById('competenciaModalTitle').textContent = 'Agregar Competencia';
 }
 
@@ -343,6 +347,7 @@ export async function editCompetencia(id) {
   document.getElementById('compTitulo').value = c.titulo || '';
   document.getElementById('compDescripcion').value = c.descripcion || '';
   document.getElementById('compOrden').value = c.orden || '';
+  document.getElementById('compPeso').value = c.peso !== null && c.peso !== undefined ? c.peso : '';
   document.getElementById('compTipo').value = c.tipo || 'GERENCIAL';
   
   document.getElementById('competenciaModalTitle').textContent = 'Modificar Competencia';
@@ -355,8 +360,25 @@ export async function saveCompetencia(event) {
   const descripcion = document.getElementById('compDescripcion').value.trim();
   const orden = parseInt(document.getElementById('compOrden').value);
   const tipo = document.getElementById('compTipo').value;
+  const peso = parseFloat(document.getElementById('compPeso').value) || 0;
   
-  const payload = { titulo, descripcion, orden, tipo };
+  if (peso < 0 || peso > 100) {
+    showToast("El peso debe ser un valor porcentual entre 0% y 100%.", "error");
+    return;
+  }
+  
+  // Validar sumatoria por tipo de competencia (GERENCIAL o ADMINISTRATIVO)
+  const currentCompId = id ? parseInt(id) : null;
+  const sumOtherComps = state.classesCache
+    .filter(c => c.tipo === tipo && c.id !== currentCompId)
+    .reduce((sum, c) => sum + (parseFloat(c.peso) || 0), 0);
+    
+  if (sumOtherComps + peso > 100) {
+    showToast(`La sumatoria de pesos para el tipo de competencia ${tipo} no debe superar el 100%. Actualmente la suma de las otras competencias es ${sumOtherComps.toFixed(2)}%. El máximo disponible es ${(100 - sumOtherComps).toFixed(2)}%.`, "error");
+    return;
+  }
+  
+  const payload = { titulo, descripcion, orden, tipo, peso };
   
   try {
     if (id) {
@@ -462,7 +484,10 @@ export function renderAspectosCrud() {
       <tr>
         <td><mark style="background-color: var(--primary-focus); color: var(--primary); font-weight: 700; border-radius: 4px; padding: 0.1rem 0.4rem;">${a.orden}</mark></td>
         <td><strong>${claseTitulo}</strong></td>
-        <td style="max-width: 400px; text-align: justify;">${a.descripcion}</td>
+        <td style="max-width: 400px; text-align: justify;">
+          ${a.descripcion}
+          ${a.revverse ? '<span class="badge" style="background-color: #f97316; color: #ffffff; padding: 0.1rem 0.4rem; font-size: 0.7rem; border-radius: 4px; vertical-align: middle; margin-left: 0.5rem;" title="Ponderacion reversa a la habitual"><i class="fa-solid fa-rotate-left"></i> Inversa</span>' : ''}
+        </td>
         <td>${tipoBadge}</td>
         <td><strong>${ponderacionText}</strong></td>
         <td style="text-align: right; white-space: nowrap;">
@@ -491,6 +516,7 @@ export async function openAspectoModal() {
   document.getElementById('aspectoForm').reset();
   document.getElementById('aspectoIdInput').value = '';
   document.getElementById('aspPonderacion').value = '';
+  document.getElementById('aspReverse').checked = false;
   document.getElementById('aspectoModalTitle').textContent = 'Agregar Aspecto a Evaluar';
 }
 
@@ -507,6 +533,7 @@ export async function editAspecto(id) {
   document.getElementById('aspTipo').value = a.tipo || 'rango1,4';
   document.getElementById('aspOrden').value = a.orden || '';
   document.getElementById('aspPonderacion').value = a.ponderacion !== null && a.ponderacion !== undefined ? a.ponderacion : '';
+  document.getElementById('aspReverse').checked = !!a.revverse;
   
   document.getElementById('aspectoModalTitle').textContent = 'Modificar Aspecto a Evaluar';
 }
@@ -519,6 +546,7 @@ export async function saveAspecto(event) {
   const tipo = document.getElementById('aspTipo').value;
   const orden = parseInt(document.getElementById('aspOrden').value);
   const ponderacion = parseFloat(document.getElementById('aspPonderacion').value) || 0;
+  const reverse = document.getElementById('aspReverse').checked;
   
   if (ponderacion < 0 || ponderacion > 100) {
     showToast("La ponderación debe ser un valor porcentual entre 0% y 100%.", "error");
@@ -536,7 +564,7 @@ export async function saveAspecto(event) {
     return;
   }
   
-  const payload = { clase_id, descripcion, tipo, orden, ponderacion };
+  const payload = { clase_id, descripcion, tipo, orden, ponderacion, revverse: reverse };
   
   try {
     if (id) {
