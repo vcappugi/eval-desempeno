@@ -914,14 +914,22 @@ export function renderFechasEvalCrud() {
     });
     
     let actionButtons = '';
+    const reportButton = `
+      <button class="outline" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0; border-color: var(--primary); color: var(--primary);" onclick="showFechaEvaluacionReport('${fe.fecha}')" title="Reporte Consolidado">
+        <i class="fa-solid fa-clipboard-list"></i>
+      </button>
+    `;
+    
     if (tieneEvaluaciones) {
       actionButtons = `
+        ${reportButton}
         <span style="background-color: var(--primary-focus); color: var(--primary); font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
           <i class="fa-solid fa-lock"></i> Con Evaluaciones
         </span>
       `;
     } else {
       actionButtons = `
+        ${reportButton}
         <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editFechaEval(${fe.id})" title="Modificar">
           <i class="fa-solid fa-pen"></i>
         </button>

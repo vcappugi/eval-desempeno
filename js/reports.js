@@ -1187,3 +1187,498 @@ export function renderReporteColaboradores() {
 export function printReporteColaboradores() {
   window.print();
 }
+
+export function printFechaEvaluacionReport(fecha) {
+  const workers = state.workersCache || [];
+  
+  if (workers.length === 0) {
+    alert("No hay trabajadores en el sistema.");
+    return;
+  }
+
+  let tableRowsHtml = '';
+  
+  workers.forEach(w => {
+    // Buscar evaluations de este trabajador para la fecha seleccionada
+    const workerEvals = (state.evaluationsCache || []).filter(ev => {
+      if (ev.fecha !== fecha) return false;
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && parsed.trabajador_id === w.id;
+      } catch(e) {
+        return false;
+      }
+    });
+
+    // Obtener supervisor
+    let supervisorName = 'N/A';
+    if (w.supervisor_id) {
+      const sup = workers.find(s => s.id === w.supervisor_id);
+      if (sup) {
+        supervisorName = sup.nombre;
+      }
+    }
+
+    let totalScoreLabel = 'Sin Evaluar';
+    
+    if (workerEvals.length > 0) {
+      const workerTipo = (w.tipo || 'GERENCIAL').toUpperCase().trim();
+      
+      const compWeightedSuma = {};
+      const compWeightSum = {};
+      const compUnweightedSuma = {};
+      const compCuenta = {};
+      const compAvgScores = [];
+
+      workerEvals.forEach(ev => {
+        try {
+          const parsed = safeParseJSON(ev.evaluacion);
+          const rawValor = parsed ? parsed.valor : null;
+          let valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
+          
+          const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+          if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+            const claseId = ev.clase_id;
+            const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
+            
+            if (!compWeightedSuma[claseId]) {
+              compWeightedSuma[claseId] = 0;
+              compWeightSum[claseId] = 0;
+              compUnweightedSuma[claseId] = 0;
+              compCuenta[claseId] = 0;
+            }
+            
+            let valToUse = valor;
+            if (aspecto.revverse && valor >= 1 && valor <= 4) {
+              valToUse = 5 - valor;
+            }
+            
+            if (weight > 0) {
+              compWeightedSuma[claseId] += valToUse * weight;
+              compWeightSum[claseId] += weight;
+            }
+            compUnweightedSuma[claseId] += valToUse;
+            compCuenta[claseId]++;
+          }
+        } catch(e) {}
+      });
+
+      state.classesCache.forEach(c => {
+        const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+        if (compTipo !== workerTipo) return;
+
+        const weightedSuma = compWeightedSuma[c.id] || 0;
+        const weightSum = compWeightSum[c.id] || 0;
+        const unweightedSuma = compUnweightedSuma[c.id] || 0;
+        const cuenta = compCuenta[c.id] || 0;
+        
+        if (cuenta > 0) {
+          const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
+          compAvgScores.push({
+            id: c.id,
+            promedio: promedio
+          });
+        }
+      });
+
+      let totalWeight = 0;
+      let weightedSum = 0;
+      compAvgScores.forEach(item => {
+        const compObj = state.classesCache.find(c => c.id === item.id);
+        const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+        weightedSum += item.promedio * (weight / 100);
+        totalWeight += weight;
+      });
+
+      const promedioGeneral = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0);
+      const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
+      totalScoreLabel = `${porcentajeGeneral}%`;
+    }
+
+    tableRowsHtml += `
+      <tr>
+        <td style="border: 1px solid #cbd5e1; padding: 8px;">${w.cedula}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 8px;"><strong>${w.nombre}</strong></td>
+        <td style="border: 1px solid #cbd5e1; padding: 8px;">${w.departamento || 'N/A'}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 8px;">${supervisorName}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-weight: 600; color: ${totalScoreLabel === 'Sin Evaluar' ? '#666666' : '#2e7d32'};">
+          ${totalScoreLabel}
+        </td>
+      </tr>
+    `;
+  });
+
+  const printDiv = document.createElement('div');
+  printDiv.id = 'print-evaluations-list-container';
+  
+  const formattedDate = new Date(fecha + 'T00:00:00').toLocaleDateString();
+
+  printDiv.innerHTML = `
+    <div style="font-family: Arial, sans-serif; padding: 2rem; color: #000000; background: #ffffff;">
+      <!-- Membrete con Logo -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2e7d32; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <img src="images/BEL_LOGO.jpg" alt="BEL Logo" style="height: 50px;" onerror="this.src='https://placehold.co/120x80/2e7d32/ffffff?text=BEL+Group'">
+        </div>
+        <div style="text-align: right;">
+          <h2 style="margin: 0; color: #2e7d32; font-size: 1.5rem;">Reporte Consolidado de Evaluaciones</h2>
+          <small style="color: #666666;">Corporación BEL</small>
+        </div>
+      </div>
+      
+      <!-- Información del Reporte -->
+      <div style="background-color: #f1f8e9; border-left: 5px solid #2e7d32; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span>Rango / Fecha de Evaluación: <strong>${formattedDate}</strong></span>
+          <span>Fecha de Emisión: <strong>${new Date().toLocaleDateString()}</strong></span>
+          <span>Total Trabajadores: <strong>${workers.length}</strong></span>
+        </div>
+      </div>
+
+      <!-- Tabla de Trabajadores -->
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 1rem;">
+        <thead>
+          <tr style="background-color: #f1f5f9;">
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Cédula</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Nombre</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Departamento</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Supervisor Evaluador</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: right; width: 20%;">Total Evaluación</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHtml}
+        </tbody>
+      </table>
+      
+      <!-- Nota de Cierre -->
+      <div style="margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #888888; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+        Este listado es un reporte oficial de evaluación de desempeño general generado por el Sistema de Evaluación de Desempeño - BEL.
+      </div>
+    </div>
+  `;
+
+  // Estilo de impresión
+  const style = document.createElement('style');
+  style.id = 'print-evaluations-list-style';
+  style.innerHTML = `
+    @media print {
+      body > *:not(#print-evaluations-list-container) {
+        display: none !important;
+      }
+      #print-evaluations-list-container {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(printDiv);
+  
+  window.print();
+  
+  setTimeout(() => {
+    printDiv.remove();
+    style.remove();
+  }, 1000);
+}
+
+export async function showFechaEvaluacionReport(fecha) {
+  state.activeReportFecha = fecha;
+  await openModal('reporteGeneralModal');
+  
+  const workers = state.workersCache || [];
+  const formattedDate = new Date(fecha + 'T00:00:00').toLocaleDateString();
+  
+  document.getElementById('repGenFechaLabel').textContent = formattedDate;
+  document.getElementById('repGenTotalLabel').textContent = workers.length;
+  
+  const tbody = document.getElementById('reporteGeneralTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Calculando resultados...</td></tr>';
+  
+  let html = '';
+  
+  workers.forEach(w => {
+    const workerEvals = (state.evaluationsCache || []).filter(ev => {
+      if (ev.fecha !== fecha) return false;
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && parsed.trabajador_id === w.id;
+      } catch(e) {
+        return false;
+      }
+    });
+
+    let supervisorName = 'N/A';
+    if (w.supervisor_id) {
+      const sup = workers.find(s => s.id === w.supervisor_id);
+      if (sup) {
+        supervisorName = sup.nombre;
+      }
+    }
+
+    let totalScoreLabel = 'Sin Evaluar';
+    
+    if (workerEvals.length > 0) {
+      const workerTipo = (w.tipo || 'GERENCIAL').toUpperCase().trim();
+      
+      const compWeightedSuma = {};
+      const compWeightSum = {};
+      const compUnweightedSuma = {};
+      const compCuenta = {};
+      const compAvgScores = [];
+
+      workerEvals.forEach(ev => {
+        try {
+          const parsed = safeParseJSON(ev.evaluacion);
+          const rawValor = parsed ? parsed.valor : null;
+          let valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
+          
+          const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+          if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+            const claseId = ev.clase_id;
+            const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
+            
+            if (!compWeightedSuma[claseId]) {
+              compWeightedSuma[claseId] = 0;
+              compWeightSum[claseId] = 0;
+              compUnweightedSuma[claseId] = 0;
+              compCuenta[claseId] = 0;
+            }
+            
+            let valToUse = valor;
+            if (aspecto.revverse && valor >= 1 && valor <= 4) {
+              valToUse = 5 - valor;
+            }
+            
+            if (weight > 0) {
+              compWeightedSuma[claseId] += valToUse * weight;
+              compWeightSum[claseId] += weight;
+            }
+            compUnweightedSuma[claseId] += valToUse;
+            compCuenta[claseId]++;
+          }
+        } catch(e) {}
+      });
+
+      state.classesCache.forEach(c => {
+        const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+        if (compTipo !== workerTipo) return;
+
+        const weightedSuma = compWeightedSuma[c.id] || 0;
+        const weightSum = compWeightSum[c.id] || 0;
+        const unweightedSuma = compUnweightedSuma[c.id] || 0;
+        const cuenta = compCuenta[c.id] || 0;
+        
+        if (cuenta > 0) {
+          const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
+          compAvgScores.push({
+            id: c.id,
+            promedio: promedio
+          });
+        }
+      });
+
+      let totalWeight = 0;
+      let weightedSum = 0;
+      compAvgScores.forEach(item => {
+        const compObj = state.classesCache.find(c => c.id === item.id);
+        const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+        weightedSum += item.promedio * (weight / 100);
+        totalWeight += weight;
+      });
+
+      const promedioGeneral = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0);
+      const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
+      totalScoreLabel = `${porcentajeGeneral}%`;
+    }
+
+    const colorStyle = totalScoreLabel === 'Sin Evaluar' ? 'color: var(--muted-color); font-weight: normal;' : 'color: var(--primary); font-weight: bold;';
+
+    html += `
+      <tr>
+        <td>${w.cedula}</td>
+        <td><strong>${w.nombre}</strong></td>
+        <td>${w.departamento || 'N/A'}</td>
+        <td>${supervisorName}</td>
+        <td style="text-align: right; ${colorStyle}">${totalScoreLabel}</td>
+      </tr>
+    `;
+  });
+  
+  tbody.innerHTML = html;
+}
+
+export function printReporteGeneralDesdeModal() {
+  const fecha = state.activeReportFecha;
+  if (!fecha) return;
+  printFechaEvaluacionReport(fecha);
+}
+
+export function exportReporteGeneralExcel() {
+  const fecha = state.activeReportFecha;
+  if (!fecha) return;
+  
+  const workers = state.workersCache || [];
+  if (workers.length === 0) return;
+  
+  let rowsHtml = '';
+  
+  workers.forEach(w => {
+    const workerEvals = (state.evaluationsCache || []).filter(ev => {
+      if (ev.fecha !== fecha) return false;
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && parsed.trabajador_id === w.id;
+      } catch(e) {
+        return false;
+      }
+    });
+
+    let supervisorName = 'N/A';
+    if (w.supervisor_id) {
+      const sup = workers.find(s => s.id === w.supervisor_id);
+      if (sup) {
+        supervisorName = sup.nombre;
+      }
+    }
+
+    let totalScoreLabel = 'Sin Evaluar';
+    
+    if (workerEvals.length > 0) {
+      const workerTipo = (w.tipo || 'GERENCIAL').toUpperCase().trim();
+      
+      const compWeightedSuma = {};
+      const compWeightSum = {};
+      const compUnweightedSuma = {};
+      const compCuenta = {};
+      const compAvgScores = [];
+
+      workerEvals.forEach(ev => {
+        try {
+          const parsed = safeParseJSON(ev.evaluacion);
+          const rawValor = parsed ? parsed.valor : null;
+          let valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
+          
+          const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
+          if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+            const claseId = ev.clase_id;
+            const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
+            
+            if (!compWeightedSuma[claseId]) {
+              compWeightedSuma[claseId] = 0;
+              compWeightSum[claseId] = 0;
+              compUnweightedSuma[claseId] = 0;
+              compCuenta[claseId] = 0;
+            }
+            
+            let valToUse = valor;
+            if (aspecto.revverse && valor >= 1 && valor <= 4) {
+              valToUse = 5 - valor;
+            }
+            
+            if (weight > 0) {
+              compWeightedSuma[claseId] += valToUse * weight;
+              compWeightSum[claseId] += weight;
+            }
+            compUnweightedSuma[claseId] += valToUse;
+            compCuenta[claseId]++;
+          }
+        } catch(e) {}
+      });
+
+      state.classesCache.forEach(c => {
+        const compTipo = c.tipo ? c.tipo.toUpperCase().trim() : 'GERENCIAL';
+        if (compTipo !== workerTipo) return;
+
+        const weightedSuma = compWeightedSuma[c.id] || 0;
+        const weightSum = compWeightSum[c.id] || 0;
+        const unweightedSuma = compUnweightedSuma[c.id] || 0;
+        const cuenta = compCuenta[c.id] || 0;
+        
+        if (cuenta > 0) {
+          const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
+          compAvgScores.push({
+            id: c.id,
+            promedio: promedio
+          });
+        }
+      });
+
+      let totalWeight = 0;
+      let weightedSum = 0;
+      compAvgScores.forEach(item => {
+        const compObj = state.classesCache.find(c => c.id === item.id);
+        const weight = compObj && compObj.peso !== null && compObj.peso !== undefined ? parseFloat(compObj.peso) : 0;
+        weightedSum += item.promedio * (weight / 100);
+        totalWeight += weight;
+      });
+
+      const promedioGeneral = totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val.promedio, 0) / compAvgScores.length : 0);
+      const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
+      totalScoreLabel = `${porcentajeGeneral}%`;
+    }
+
+    rowsHtml += `
+      <tr>
+        <td style="border: 1px solid #cbd5e1; padding: 6px;">${w.cedula}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 6px;">${w.nombre}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 6px;">${w.departamento || 'N/A'}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 6px;">${supervisorName}</td>
+        <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: right; font-weight: bold;">${totalScoreLabel}</td>
+      </tr>
+    `;
+  });
+  
+  const formattedDate = new Date(fecha + 'T00:00:00').toLocaleDateString();
+  
+  const template = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+        th { background-color: #2e7d32; color: #ffffff; font-weight: bold; padding: 8px; border: 1px solid #cbd5e1; }
+        td { border: 1px solid #cbd5e1; padding: 8px; }
+        .header-title { font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 5px; }
+      </style>
+    </head>
+    <body>
+      <div class="header-title">Reporte Consolidado de Evaluaciones - Corporación BEL</div>
+      <div style="margin-bottom: 15px;">
+        <strong>Fecha de Evaluación:</strong> ${formattedDate} &nbsp;&nbsp;&nbsp;&nbsp;
+        <strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cédula</th>
+            <th>Nombre</th>
+            <th>Departamento</th>
+            <th>Supervisor Evaluador</th>
+            <th>Total Evaluación</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+  
+  const blob = new Blob([template], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Reporte_Consolidado_Evaluaciones_${fecha}.xls`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
