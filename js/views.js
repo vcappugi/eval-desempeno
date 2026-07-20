@@ -1,10 +1,10 @@
 // js/views.js - Control de vistas, temas y navegación SPA
 
-import { state } from './state.js?v=2.1.6';
-import { ensureTemplateLoaded } from './utils.js?v=2.1.6';
-import { renderColaboradores, closeEvaluationForm } from './evaluations.js?v=2.1.6';
-import { renderIndicadoresGenerales, initReporteColaboradoresFilters, renderReporteColaboradores } from './reports.js?v=2.1.6';
-import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud, renderDepartamentosCrud, populateSearchDeptFilters } from './admin.js?v=2.1.6';
+import { state } from './state.js?v=2.2.0';
+import { ensureTemplateLoaded } from './utils.js?v=2.2.0';
+import { renderColaboradores, closeEvaluationForm } from './evaluations.js?v=2.2.0';
+import { renderIndicadoresGenerales, initReporteColaboradoresFilters, renderReporteColaboradores } from './reports.js?v=2.2.0';
+import { renderTrabajadoresCrud, renderCompetenciasCrud, renderAspectosCrud, renderCierreEvaluaciones, renderFechasEvalCrud, renderDepartamentosCrud, populateSearchDeptFilters } from './admin.js?v=2.2.0';
 
 export async function switchView(viewName) {
   state.activeView = viewName;

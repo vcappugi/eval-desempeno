@@ -1,9 +1,9 @@
 // js/evaluations.js - Formulario de evaluaciones y listado de colaboradores
 
-import { state } from './state.js?v=2.1.6';
-import { safeParseJSON, showToast, handleRlsError } from './utils.js?v=2.1.6';
-import { loadCaches } from './supabase.js?v=2.1.6';
-import { showWorkerChartModal } from './reports.js?v=2.1.6';
+import { state } from './state.js?v=2.2.0';
+import { safeParseJSON, showToast, handleRlsError } from './utils.js?v=2.2.0';
+import { loadCaches } from './supabase.js?v=2.2.0';
+import { showWorkerChartModal } from './reports.js?v=2.2.0';
 
 export function renderColaboradores() {
   const tbody = document.getElementById('colaboradoresTableBody');

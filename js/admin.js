@@ -1,9 +1,9 @@
 // js/admin.js - Operaciones del Panel Administrativo (CRUDs y cierre de evaluaciones)
 
-import { state } from './state.js?v=2.1.6';
-import { showToast, handleRlsError, openModal, closeModal, safeParseJSON } from './utils.js?v=2.1.6';
-import { loadCaches } from './supabase.js?v=2.1.6';
-import { printEvaluationReport } from './evaluations.js?v=2.1.6';
+import { state } from './state.js?v=2.2.0';
+import { showToast, handleRlsError, openModal, closeModal, safeParseJSON } from './utils.js?v=2.2.0';
+import { loadCaches } from './supabase.js?v=2.2.0';
+import { printEvaluationReport } from './evaluations.js?v=2.2.0';
 
 // ================= CRUD: TRABAJADORES =================
 

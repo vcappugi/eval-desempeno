@@ -1,11 +1,11 @@
 // js/main.js - Punto de entrada principal y enlace global para el DOM
 
-import { state } from './state.js?v=2.1.6';
-import { initSupabase } from './supabase.js?v=2.1.6';
-import { closeModal } from './utils.js?v=2.1.6';
-import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js?v=2.1.6';
-import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js?v=2.1.6';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, handleEvalWorkerDeptFilter, printMainEvaluationForm } from './evaluations.js?v=2.1.6';
+import { state } from './state.js?v=2.2.0';
+import { initSupabase } from './supabase.js?v=2.2.0';
+import { closeModal } from './utils.js?v=2.2.0';
+import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js?v=2.2.0';
+import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js?v=2.2.0';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, handleEvalWorkerDeptFilter, printMainEvaluationForm } from './evaluations.js?v=2.2.0';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -41,8 +41,8 @@ import {
   handleTrabDepartamentoChange,
   populateDepartamentosSelect,
   handleWorkerDeptFilter
-} from './admin.js?v=2.1.6';
-import { showWorkerChartModal, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange, printFechaEvaluacionReport, showFechaEvaluacionReport, printReporteGeneralDesdeModal, exportReporteGeneralExcel } from './reports.js?v=2.1.6';
+} from './admin.js?v=2.2.0';
+import { showWorkerChartModal, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange, printFechaEvaluacionReport, showFechaEvaluacionReport, printReporteGeneralDesdeModal, exportReporteGeneralExcel } from './reports.js?v=2.2.0';
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", async () => {

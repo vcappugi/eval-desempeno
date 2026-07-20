@@ -1,8 +1,8 @@
 // js/supabase.js - Cliente de Supabase y recarga de cachés de datos
 
-import { state } from './state.js?v=2.1.6';
-import { showToast } from './utils.js?v=2.1.6';
-import { populateSupervisorSelects, populateCompetenciasSelects, populateDepartamentosSelect, populateSearchDeptFilters } from './admin.js?v=2.1.6';
+import { state } from './state.js?v=2.2.0';
+import { showToast } from './utils.js?v=2.2.0';
+import { populateSupervisorSelects, populateCompetenciasSelects, populateDepartamentosSelect, populateSearchDeptFilters } from './admin.js?v=2.2.0';
 
 export async function initSupabase() {
   try {

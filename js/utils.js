@@ -98,6 +98,8 @@ export async function openModal(modalId) {
     await ensureTemplateLoaded('departamentoModal', 'modals/departamento.html');
   } else if (modalId === 'detalleEvaluacionModal') {
     await ensureTemplateLoaded('detalleEvaluacionModal', 'modals/detalle_evaluacion.html');
+  } else if (modalId === 'reporteGeneralModal') {
+    await ensureTemplateLoaded('reporteGeneralModal', 'modals/reporte_general.html');
   }
   
   const modal = document.getElementById(modalId);
