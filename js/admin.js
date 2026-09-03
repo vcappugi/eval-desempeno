@@ -920,9 +920,20 @@ export function renderFechasEvalCrud() {
       </button>
     `;
     
+    const togglePublicadoBtn = fe.publicado ? `
+      <button class="outline warning" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0; color: #d97706; border-color: #d97706;" onclick="unpublishFechaEval(${fe.id})" title="Despublicar Periodo (Marcar como No Publicado)">
+        <i class="fa-solid fa-eye-slash"></i>
+      </button>
+    ` : `
+      <button class="outline primary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="publishFechaEval(${fe.id})" title="Publicar Periodo">
+        <i class="fa-solid fa-eye"></i>
+      </button>
+    `;
+    
     if (tieneEvaluaciones) {
       actionButtons = `
         ${reportButton}
+        ${togglePublicadoBtn}
         <span style="background-color: var(--primary-focus); color: var(--primary); font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
           <i class="fa-solid fa-lock"></i> Con Evaluaciones
         </span>
@@ -930,6 +941,7 @@ export function renderFechasEvalCrud() {
     } else {
       actionButtons = `
         ${reportButton}
+        ${togglePublicadoBtn}
         <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editFechaEval(${fe.id})" title="Modificar">
           <i class="fa-solid fa-pen"></i>
         </button>
@@ -1082,6 +1094,73 @@ export async function deleteFechaEval(id) {
     handleRlsError(err);
   }
 }
+
+export async function unpublishFechaEval(id) {
+  const fe = state.fechaEvalCache.find(item => item.id === id);
+  if (!fe) return;
+  
+  if (!fe.publicado) {
+    showToast("El periodo ya se encuentra despublicado.", "warning");
+    return;
+  }
+  
+  const fechaFormateada = fe.fecha ? new Date(fe.fecha + 'T00:00:00').toLocaleDateString() : id;
+  if (!confirm(`¿Está seguro de colocar el periodo "${fechaFormateada}" como NO PUBLICADO?`)) {
+    return;
+  }
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('fecha_eval')
+      .update({ publicado: false })
+      .eq('id', id);
+      
+    if (error) throw error;
+    
+    showToast("Periodo marcado como NO publicado exitosamente.");
+    await loadCaches();
+    renderFechasEvalCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
+export async function publishFechaEval(id) {
+  const fe = state.fechaEvalCache.find(item => item.id === id);
+  if (!fe) return;
+  
+  if (fe.publicado) {
+    showToast("El periodo ya se encuentra publicado.", "warning");
+    return;
+  }
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('fecha_eval')
+      .update({ publicado: true })
+      .eq('id', id);
+      
+    if (error) throw error;
+    
+    showToast("Periodo publicado exitosamente.");
+    await loadCaches();
+    renderFechasEvalCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
+export async function toggleFechaEvalPublicado(id) {
+  const fe = state.fechaEvalCache.find(item => item.id === id);
+  if (!fe) return;
+  
+  if (fe.publicado) {
+    await unpublishFechaEval(id);
+  } else {
+    await publishFechaEval(id);
+  }
+}
+
 
 export function renderDepartamentosCrud() {
   const tbody = document.getElementById('departamentosTableBody');

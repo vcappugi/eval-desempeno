@@ -31,6 +31,9 @@ import {
   printEvaluationDetail,
   editFechaEval,
   deleteFechaEval,
+  unpublishFechaEval,
+  publishFechaEval,
+  toggleFechaEvalPublicado,
   openFechaEvalModal,
   saveFechaEval,
   editDepartamento,
@@ -119,6 +122,9 @@ window.printEvaluationDetail = printEvaluationDetail;
 // CRUD Fechas
 window.editFechaEval = editFechaEval;
 window.deleteFechaEval = deleteFechaEval;
+window.unpublishFechaEval = unpublishFechaEval;
+window.publishFechaEval = publishFechaEval;
+window.toggleFechaEvalPublicado = toggleFechaEvalPublicado;
 window.openFechaEvalModal = openFechaEvalModal;
 window.saveFechaEval = saveFechaEval;
 
