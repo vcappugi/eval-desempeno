@@ -45,7 +45,7 @@ import {
   populateDepartamentosSelect,
   handleWorkerDeptFilter
 } from './admin.js?v=2.2.0';
-import { showWorkerChartModal, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange, printFechaEvaluacionReport, showFechaEvaluacionReport, printReporteGeneralDesdeModal, exportReporteGeneralExcel } from './reports.js?v=2.2.0';
+import { showWorkerChartModal, handleChartFechaFilterChange, renderReporteColaboradores, printReporteColaboradores, handleReportDeptChange, printFechaEvaluacionReport, showFechaEvaluacionReport, printReporteGeneralDesdeModal, exportReporteGeneralExcel } from './reports.js?v=2.2.0';
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", async () => {
@@ -139,6 +139,7 @@ window.populateDepartamentosSelect = populateDepartamentosSelect;
 
 // Reportes y Gráficos
 window.showWorkerChartModal = showWorkerChartModal;
+window.handleChartFechaFilterChange = handleChartFechaFilterChange;
 window.renderReporteColaboradores = renderReporteColaboradores;
 window.printReporteColaboradores = printReporteColaboradores;
 window.handleReportDeptChange = handleReportDeptChange;

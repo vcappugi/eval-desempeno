@@ -28,5 +28,6 @@ export const state = {
   supabaseClient: null,
   
   // Instancia activa de Chart.js
-  currentChartInstance: null
+  currentChartInstance: null,
+  currentChartWorkerId: null
 };

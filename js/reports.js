@@ -169,6 +169,8 @@ export async function showWorkerChartModal(workerId) {
   const w = state.workersCache.find(worker => worker.id === workerId);
   if (!w) return;
   
+  state.currentChartWorkerId = workerId;
+  
   await openModal('workerChartModal');
   
   document.getElementById('chartWorkerName').textContent = w.nombre;
@@ -176,7 +178,7 @@ export async function showWorkerChartModal(workerId) {
   document.getElementById('chartWorkerCargo').textContent = w.cargo || 'N/A';
   
   // Buscar todas las filas de evaluaciones en caché para este trabajador
-  const workerEvals = state.evaluationsCache.filter(ev => {
+  const allWorkerEvals = state.evaluationsCache.filter(ev => {
     try {
       const parsed = safeParseJSON(ev.evaluacion);
       return parsed && parsed.trabajador_id === workerId;
@@ -184,6 +186,55 @@ export async function showWorkerChartModal(workerId) {
       return false;
     }
   });
+  
+  // Obtener fechas únicas de evaluación ordenadas de más reciente a más antigua
+  const uniqueDates = [...new Set(allWorkerEvals.map(ev => ev.fecha))].sort((a, b) => new Date(b) - new Date(a));
+  
+  const selectFecha = document.getElementById('chartFechaFilter');
+  if (selectFecha) {
+    selectFecha.innerHTML = '';
+    const optionTodas = document.createElement('option');
+    optionTodas.value = 'todas';
+    optionTodas.textContent = 'Todas las fechas (Promedio)';
+    selectFecha.appendChild(optionTodas);
+    
+    uniqueDates.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f;
+      opt.textContent = new Date(f + 'T00:00:00').toLocaleDateString();
+      selectFecha.appendChild(opt);
+    });
+    
+    selectFecha.value = 'todas';
+    selectFecha.disabled = uniqueDates.length === 0;
+  }
+  
+  updateWorkerChartData(workerId, 'todas');
+}
+
+export function handleChartFechaFilterChange() {
+  const workerId = state.currentChartWorkerId;
+  const selectFecha = document.getElementById('chartFechaFilter');
+  const selectedFecha = selectFecha ? selectFecha.value : 'todas';
+  if (workerId) {
+    updateWorkerChartData(workerId, selectedFecha);
+  }
+}
+
+export function updateWorkerChartData(workerId, selectedFecha = 'todas') {
+  const allWorkerEvals = state.evaluationsCache.filter(ev => {
+    try {
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === workerId;
+    } catch(e) {
+      return false;
+    }
+  });
+  
+  let workerEvals = allWorkerEvals;
+  if (selectedFecha && selectedFecha !== 'todas') {
+    workerEvals = allWorkerEvals.filter(ev => ev.fecha === selectedFecha);
+  }
   
   const canvas = document.getElementById('workerChartCanvas');
   const noDataMsg = document.getElementById('chartNoDataMsg');
@@ -233,7 +284,7 @@ export async function showWorkerChartModal(workerId) {
       const rawValor = parsed.valor;
       const valor = (rawValor !== null && rawValor !== undefined && rawValor !== '') ? parseFloat(rawValor) : 0;
       
-      // Tomar la fecha más reciente de evaluación
+      // Registrar la fecha más reciente en el subconjunto
       if (!ultimaFecha || new Date(ev.fecha) > new Date(ultimaFecha)) {
         ultimaFecha = ev.fecha;
       }
@@ -321,7 +372,12 @@ export async function showWorkerChartModal(workerId) {
   else if (porcentajeGeneral > 0) clasificacion = 'Deficiente (Bajo desempeño)';
   
   scoreLabel.textContent = clasificacion;
-  dateLabel.textContent = `Evaluado el: ${ultimaFecha ? new Date(ultimaFecha).toLocaleDateString() : 'N/A'}`;
+  
+  if (selectedFecha && selectedFecha !== 'todas') {
+    dateLabel.textContent = `Evaluado el: ${new Date(selectedFecha + 'T00:00:00').toLocaleDateString()}`;
+  } else {
+    dateLabel.textContent = `Evaluado el: ${ultimaFecha ? new Date(ultimaFecha + 'T00:00:00').toLocaleDateString() + ' (Última)' : 'N/A'}`;
+  }
   
   // Preparar datos para el gráfico
   const labels = [];
@@ -455,6 +511,25 @@ export function initReporteColaboradoresFilters() {
     selectColab.value = 'todos';
   }
   
+  // 3. Poblar fechas de evaluación
+  const selectFecha = document.getElementById('repFiltroFechaEval');
+  if (selectFecha) {
+    const currentFechaVal = selectFecha.value || 'todas';
+    const datesSet = new Set();
+    state.fechaEvalCache.forEach(fe => datesSet.add(fe.fecha));
+    state.evaluationsCache.forEach(ev => {
+      if (ev.fecha) datesSet.add(ev.fecha);
+    });
+    const sortedFechas = [...datesSet].sort((a, b) => new Date(b) - new Date(a));
+
+    let fechaHtml = '<option value="todas">Todas las fechas</option>';
+    sortedFechas.forEach(f => {
+      fechaHtml += `<option value="${f}">${new Date(f + 'T00:00:00').toLocaleDateString()}</option>`;
+    });
+    selectFecha.innerHTML = fechaHtml;
+    selectFecha.value = currentFechaVal;
+  }
+  
   // Actualizar textos de cabecera en reportes según el rol
   const headerTitle = document.getElementById('reporteColaboradoresHeaderTitle');
   const headerDesc = document.getElementById('reporteColaboradoresHeaderDesc');
@@ -524,8 +599,10 @@ export function renderReporteColaboradores() {
   
   const selectedDept = document.getElementById('repFiltroDepartamento')?.value || 'todos';
   const selectedColabId = document.getElementById('repFiltroColaborador')?.value || 'todos';
-  const dateDesde = document.getElementById('repFiltroFechaDesde')?.value || '';
-  const dateHasta = document.getElementById('repFiltroFechaHasta')?.value || '';
+  const selectedFecha = document.getElementById('repFiltroFechaEval')?.value || 'todas';
+  const fechaResumenTexto = (selectedFecha && selectedFecha !== 'todas')
+    ? new Date(selectedFecha + 'T00:00:00').toLocaleDateString()
+    : 'Promedio';
   
   let filteredColaboradores = colaboradores;
   
@@ -559,7 +636,7 @@ export function renderReporteColaboradores() {
       <div class="report-header-text">
         <h3>Corporación BEL</h3>
         <p><strong>Informe de Indicadores Individuales de Desempeño</strong></p>
-        <p style="font-size: 0.8rem; margin-top: 0.1rem; color: var(--muted-color);">${isAdmin ? 'Administrador' : 'Supervisor'}: ${state.currentUser.nombre} | Fecha de Emisión: ${new Date().toLocaleDateString()}</p>
+        <p style="font-size: 0.8rem; margin-top: 0.1rem; color: var(--muted-color);">${isAdmin ? 'Administrador' : 'Supervisor'}: ${state.currentUser.nombre} | Fecha de Evaluación: <strong>${fechaResumenTexto}</strong> | Fecha de Emisión: ${new Date().toLocaleDateString()}</p>
       </div>
     </div>
   `;
@@ -574,11 +651,8 @@ export function renderReporteColaboradores() {
     });
     
     let finalEvals = workerEvals;
-    if (dateDesde) {
-      finalEvals = finalEvals.filter(ev => ev.fecha >= dateDesde);
-    }
-    if (dateHasta) {
-      finalEvals = finalEvals.filter(ev => ev.fecha <= dateHasta);
+    if (selectedFecha && selectedFecha !== 'todas') {
+      finalEvals = finalEvals.filter(ev => ev.fecha === selectedFecha);
     }
     
     const evalGroups = {};
@@ -711,6 +785,7 @@ export function renderReporteColaboradores() {
               <div>Empresa: <strong>${s.empresa}</strong></div>
               <div>Cargo: <strong>${s.cargo}</strong></div>
               <div>Departamento: <strong>${s.departamento}</strong></div>
+              <div>Fecha Evaluación: <strong>${fechaResumenTexto}</strong></div>
             </div>
           </div>
           
@@ -940,10 +1015,14 @@ export function renderReporteColaboradores() {
     <article class="premium-card colaborador-report-card summary-report-card" style="margin-top: 3rem; page-break-before: always; break-before: page;">
       <div style="text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h3 style="margin: 0; color: var(--primary); text-transform: uppercase;"><i class="fa-solid fa-chart-line"></i> Informe Resumen del Departamento</h3>
-        <p style="margin: 0.25rem 0 0 0; color: var(--muted-color); font-size: 0.9rem;">Consolidado de efectividad y desempeño global del equipo supervisado</p>
+        <p style="margin: 0.25rem 0 0 0; color: var(--muted-color); font-size: 0.9rem;">Consolidado de efectividad y desempeño global del equipo supervisado | Fecha de Evaluación: <strong>${fechaResumenTexto}</strong></p>
       </div>
       
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+        <div class="kpi-card" style="padding: 1rem;">
+          <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase;">Fecha Eval.</h5>
+          <h3 style="font-size: 1.35rem; margin-top: 0.25rem; font-weight: 700; color: var(--primary);">${fechaResumenTexto}</h3>
+        </div>
         <div class="kpi-card" style="padding: 1rem;">
           <h5 style="font-size: 0.75rem; color: var(--muted-color); text-transform: uppercase;">Personal Evaluado</h5>
           <h3 style="font-size: 1.75rem; margin-top: 0.25rem; font-weight: 700; color: var(--primary);">${workerSummaries.filter(w => w.evalCount > 0).length} / ${filteredColaboradores.length}</h3>
@@ -1053,8 +1132,9 @@ export function renderReporteColaboradores() {
     });
     
     let finalEvals = workerEvals;
-    if (dateDesde) finalEvals = finalEvals.filter(ev => ev.fecha >= dateDesde);
-    if (dateHasta) finalEvals = finalEvals.filter(ev => ev.fecha <= dateHasta);
+    if (selectedFecha && selectedFecha !== 'todas') {
+      finalEvals = finalEvals.filter(ev => ev.fecha === selectedFecha);
+    }
     
     if (finalEvals.length === 0) return;
     
