@@ -142,6 +142,27 @@
   
   <!-- ADMIN TAB: CIERRE DE EVALUACIONES -->
   <div id="adminTabCierre" class="admin-tab-content" style="display: none;">
+    <!-- Cierre Masivo por Fecha -->
+    <div class="premium-card" style="margin-bottom: 1.5rem; background-color: var(--primary-focus); border-left: 5px solid var(--primary);">
+      <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);"><i class="fa-solid fa-calendar-check"></i> Cierre Masivo por Fecha de Evaluación</h4>
+      <p style="margin-bottom: 1rem; font-size: 0.875rem; color: var(--muted-color);">
+        Seleccione una fecha de evaluación para cerrar todas las evaluaciones registradas en esa fecha de forma simultánea.
+      </p>
+      
+      <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div style="flex-grow: 1; max-width: 380px;">
+          <select id="cierreBatchFechaSelect" style="margin-bottom: 0;">
+            <option value="">Seleccione una fecha de evaluación...</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        
+        <button class="primary" style="margin-bottom: 0; padding: 0.5rem 1.25rem;" onclick="closeAllEvaluationsByDate()">
+          <i class="fa-solid fa-lock"></i> Cerrar Evaluaciones de esta Fecha
+        </button>
+      </div>
+    </div>
+
     <div class="premium-card">
       <h3><i class="fa-solid fa-lock text-primary"></i> Cierre de Evaluaciones Realizadas</h3>
       <p>Monitoree y cierre las evaluaciones realizadas por los supervisores. Una vez cerrada, una evaluación pasa a ser **no editable**.</p>

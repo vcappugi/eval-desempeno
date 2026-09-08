@@ -624,6 +624,34 @@ export function renderCierreEvaluaciones() {
   
   tbody.innerHTML = '';
   
+  // Poblar select masivo de fechas de cierre
+  const batchSelect = document.getElementById('cierreBatchFechaSelect');
+  if (batchSelect) {
+    const currentVal = batchSelect.value;
+    const datesSet = new Set();
+    state.fechaEvalCache.forEach(fe => datesSet.add(fe.fecha));
+    state.evaluationsCache.forEach(ev => {
+      if (ev.fecha) datesSet.add(ev.fecha);
+    });
+    const sortedFechas = [...datesSet].sort((a, b) => new Date(b) - new Date(a));
+    
+    let selectHtml = '<option value="">Seleccione una fecha de evaluación...</option>';
+    sortedFechas.forEach(f => {
+      const evalsFecha = state.evaluationsCache.filter(ev => ev.fecha === f);
+      const abiertasCount = evalsFecha.filter(ev => ev.estado === false).length;
+      const cerradasCount = evalsFecha.filter(ev => ev.estado === true).length;
+      const statusInfo = evalsFecha.length === 0 
+        ? '(Sin evaluaciones registradas)' 
+        : (abiertasCount > 0 ? `(${abiertasCount} abiertas, ${cerradasCount} cerradas)` : `(Todas cerradas)`);
+        
+      selectHtml += `<option value="${f}">${new Date(f + 'T00:00:00').toLocaleDateString()} ${statusInfo}</option>`;
+    });
+    batchSelect.innerHTML = selectHtml;
+    if (sortedFechas.includes(currentVal)) {
+      batchSelect.value = currentVal;
+    }
+  }
+  
   // Agrupar evaluaciones de la caché por (trabajador_id, fecha)
   const grouped = {};
   
@@ -774,6 +802,68 @@ export async function toggleEvaluationStatus(trabajadorId, fecha, closeStatus) {
     if (error) throw error;
     
     showToast(`Evaluación ${closeStatus ? 'cerrada' : 'reabierta'} correctamente.`);
+    await loadCaches();
+    renderCierreEvaluaciones();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
+export async function closeAllEvaluationsByDate() {
+  const batchSelect = document.getElementById('cierreBatchFechaSelect');
+  const selectedFecha = batchSelect ? batchSelect.value : '';
+  
+  if (!selectedFecha) {
+    showToast("Por favor, seleccione una fecha de evaluación para realizar el cierre masivo.", "warning");
+    return;
+  }
+  
+  const formattedDate = new Date(selectedFecha + 'T00:00:00').toLocaleDateString();
+  
+  // Buscar todas las filas de evaluaciones en esa fecha que estén abiertas (estado === false)
+  const openRows = state.evaluationsCache.filter(ev => ev.fecha === selectedFecha && ev.estado === false);
+  const totalRows = state.evaluationsCache.filter(ev => ev.fecha === selectedFecha);
+  
+  if (totalRows.length === 0) {
+    showToast(`No hay evaluaciones registradas en la base de datos para la fecha ${formattedDate}.`, "info");
+    return;
+  }
+  
+  if (openRows.length === 0) {
+    showToast(`Todas las evaluaciones para la fecha ${formattedDate} ya se encuentran cerradas.`, "info");
+    return;
+  }
+  
+  // Agrupar por trabajadores únicos que se van a cerrar
+  const workerIds = new Set();
+  openRows.forEach(row => {
+    try {
+      const parsed = safeParseJSON(row.evaluacion);
+      if (parsed && parsed.trabajador_id) workerIds.add(parsed.trabajador_id);
+    } catch(e) {}
+  });
+  
+  if (!confirm(`¿Está seguro de cerrar masivamente todas las evaluaciones de la fecha ${formattedDate}?\n\nSe cerrarán las evaluaciones de ${workerIds.size} trabajador(es) (${openRows.length} registros). Una vez cerradas, no podrán ser modificadas por los supervisores.`)) {
+    return;
+  }
+  
+  const updates = openRows.map(row => ({
+    id: row.id,
+    clase_id: row.clase_id,
+    item_evaluacion_id: row.item_evaluacion_id,
+    fecha: row.fecha,
+    estado: true,
+    evaluacion: row.evaluacion
+  }));
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('evaluacion')
+      .upsert(updates, { defaultToNull: false });
+      
+    if (error) throw error;
+    
+    showToast(`Se cerraron exitosamente todas las evaluaciones de la fecha ${formattedDate}.`);
     await loadCaches();
     renderCierreEvaluaciones();
   } catch (err) {
