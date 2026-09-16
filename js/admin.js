@@ -361,7 +361,7 @@ export function renderAspectosCrud() {
   tbody.innerHTML = '';
   
   if (state.aspectsCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay aspectos de evaluación registrados.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay aspectos de evaluación registrados.</td></tr>';
     return;
   }
   
@@ -374,6 +374,9 @@ export function renderAspectosCrud() {
     else tipoBadge = '<span class="badge">Texto Abierto</span>';
     
     const ponderacionText = a.ponderacion !== null && a.ponderacion !== undefined ? `${a.ponderacion}%` : '<span class="badge secondary" style="opacity:0.6;">Sin asignar</span>';
+    const estadoBadge = a.activo !== false ? 
+      '<span class="badge" style="background-color: var(--primary); color: #ffffff;">Activo</span>' : 
+      '<span class="badge secondary" style="opacity: 0.7;">Inactivo</span>';
     
     html += `
       <tr>
@@ -382,6 +385,7 @@ export function renderAspectosCrud() {
         <td style="max-width: 400px; text-align: justify;">${a.descripcion}</td>
         <td>${tipoBadge}</td>
         <td><strong>${ponderacionText}</strong></td>
+        <td>${estadoBadge}</td>
         <td style="text-align: right; white-space: nowrap;">
           <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editAspecto(${a.id})">
             <i class="fa-solid fa-pen"></i>
@@ -408,6 +412,8 @@ export async function openAspectoModal() {
   document.getElementById('aspectoForm').reset();
   document.getElementById('aspectoIdInput').value = '';
   document.getElementById('aspPonderacion').value = '';
+  const activoCheckbox = document.getElementById('aspActivo');
+  if (activoCheckbox) activoCheckbox.checked = true;
   document.getElementById('aspectoModalTitle').textContent = 'Agregar Aspecto a Evaluar';
 }
 
@@ -424,6 +430,8 @@ export async function editAspecto(id) {
   document.getElementById('aspTipo').value = a.tipo || 'rango1,4';
   document.getElementById('aspOrden').value = a.orden || '';
   document.getElementById('aspPonderacion').value = a.ponderacion !== null && a.ponderacion !== undefined ? a.ponderacion : '';
+  const activoCheckbox = document.getElementById('aspActivo');
+  if (activoCheckbox) activoCheckbox.checked = a.activo !== false;
   
   document.getElementById('aspectoModalTitle').textContent = 'Modificar Aspecto a Evaluar';
 }
@@ -436,24 +444,26 @@ export async function saveAspecto(event) {
   const tipo = document.getElementById('aspTipo').value;
   const orden = parseInt(document.getElementById('aspOrden').value);
   const ponderacion = parseFloat(document.getElementById('aspPonderacion').value) || 0;
+  const activoCheckbox = document.getElementById('aspActivo');
+  const activo = activoCheckbox ? activoCheckbox.checked : true;
   
   if (ponderacion < 0 || ponderacion > 100) {
     showToast("La ponderación debe ser un valor porcentual entre 0% y 100%.", "error");
     return;
   }
   
-  // Validar que la sumatoria por competencia no supere el 100%
+  // Validar que la sumatoria por competencia no supere el 100% entre aspectos activos
   const currentAspectId = id ? parseInt(id) : null;
   const sumOtherAspects = state.aspectsCache
-    .filter(a => a.clase_id === clase_id && a.id !== currentAspectId)
+    .filter(a => a.clase_id === clase_id && a.id !== currentAspectId && a.activo !== false)
     .reduce((sum, a) => sum + (parseFloat(a.ponderacion) || 0), 0);
     
-  if (sumOtherAspects + ponderacion > 100) {
-    showToast(`La sumatoria de ponderaciones para esta competencia no debe superar el 100%. Actualmente la suma de los otros aspectos es ${sumOtherAspects}%. El máximo porcentual disponible es ${(100 - sumOtherAspects).toFixed(2)}%.`, "error");
+  if (activo && (sumOtherAspects + ponderacion > 100)) {
+    showToast(`La sumatoria de ponderaciones para esta competencia no debe superar el 100%. Actualmente la suma de los otros aspectos activos es ${sumOtherAspects}%. El máximo porcentual disponible es ${(100 - sumOtherAspects).toFixed(2)}%.`, "error");
     return;
   }
   
-  const payload = { clase_id, descripcion, tipo, orden, ponderacion };
+  const payload = { clase_id, descripcion, tipo, orden, ponderacion, activo };
   
   try {
     if (id) {

@@ -202,7 +202,7 @@ export function renderEvaluationFormQuestions() {
   
   // Agrupar aspectos por competencia (clase_id) ordenando por competencia y luego aspecto
   state.classesCache.forEach(c => {
-    const aspectosDeClase = state.aspectsCache.filter(a => a.clase_id === c.id);
+    const aspectosDeClase = state.aspectsCache.filter(a => a.clase_id === c.id && a.activo !== false);
     
     // Solo renderizar la competencia si tiene aspectos de evaluación asociados
     if (aspectosDeClase.length > 0) {
