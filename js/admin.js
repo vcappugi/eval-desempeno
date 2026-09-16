@@ -248,12 +248,19 @@ export function renderCompetenciasCrud() {
   
   let html = '';
   state.classesCache.forEach(c => {
+    const tipoBadge = c.tipo === 'GERENCIAL' ? 
+      '<span class="badge" style="background-color: #1e3a8a; color: #ffffff; font-weight: 600; font-size: 0.75rem;">GERENCIAL</span>' :
+      '<span class="badge" style="background-color: var(--primary); color: #ffffff; font-weight: 600; font-size: 0.75rem;">ADMINISTRATIVO</span>';
+
     html += `
       <article class="premium-card competencia-card">
         <div>
           <div class="competencia-header">
-            <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">${c.titulo}</h4>
-            <span class="competencia-badge">Orden: ${c.orden}</span>
+            <div style="flex: 1; min-width: 0;">
+              <h4 style="margin: 0 0 0.35rem 0; font-size: 1.1rem; color: var(--primary); line-height: 1.3;">${c.titulo}</h4>
+              <div>${tipoBadge}</div>
+            </div>
+            <span class="competencia-badge" style="white-space: nowrap; align-self: flex-start;">Orden: ${c.orden}</span>
           </div>
           <p style="font-size: 0.875rem; margin-bottom: 0; color: var(--muted-color); text-align: justify;">
             ${c.descripcion || 'Sin descripción.'}
@@ -277,6 +284,8 @@ export async function openCompetenciaModal() {
   await openModal('competenciaModal');
   document.getElementById('competenciaForm').reset();
   document.getElementById('competenciaIdInput').value = '';
+  const compTipo = document.getElementById('compTipo');
+  if (compTipo) compTipo.value = 'GERENCIAL';
   document.getElementById('competenciaModalTitle').textContent = 'Agregar Competencia';
 }
 
@@ -289,6 +298,8 @@ export async function editCompetencia(id) {
   document.getElementById('compTitulo').value = c.titulo || '';
   document.getElementById('compDescripcion').value = c.descripcion || '';
   document.getElementById('compOrden').value = c.orden || '';
+  const compTipo = document.getElementById('compTipo');
+  if (compTipo) compTipo.value = c.tipo || 'GERENCIAL';
   
   document.getElementById('competenciaModalTitle').textContent = 'Modificar Competencia';
 }
@@ -299,8 +310,15 @@ export async function saveCompetencia(event) {
   const titulo = document.getElementById('compTitulo').value.trim();
   const descripcion = document.getElementById('compDescripcion').value.trim();
   const orden = parseInt(document.getElementById('compOrden').value);
+  const compTipo = document.getElementById('compTipo');
+  const tipo = compTipo ? compTipo.value : 'GERENCIAL';
   
-  const payload = { titulo, descripcion, orden };
+  if (tipo !== 'GERENCIAL' && tipo !== 'ADMINISTRATIVO') {
+    showToast("El tipo debe ser GERENCIAL o ADMINISTRATIVO.", "error");
+    return;
+  }
+  
+  const payload = { titulo, descripcion, orden, tipo };
   
   try {
     if (id) {
