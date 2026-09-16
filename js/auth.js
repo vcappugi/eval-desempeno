@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showToast, openModal, closeModal, handleRlsError } from './utils.js';
+import { showToast, openModal, closeModal, handleRlsError, verifyPassword, hashPassword } from './utils.js';
 import { loadCaches } from './supabase.js';
 import { switchView } from './views.js';
 
@@ -36,10 +36,11 @@ export async function handleLogin(event) {
   
   try {
     // Buscar en la tabla 'trabajador' por usuario o cédula
+    const cleanUser = usernameInput.replace(/['"]/g, '');
     const { data, error } = await state.supabaseClient
       .from('trabajador')
       .select('*')
-      .or(`usuario.eq."${usernameInput}",cedula.eq."${usernameInput}"`);
+      .or(`usuario.eq."${cleanUser}",cedula.eq."${cleanUser}"`);
       
     if (error) throw error;
     
@@ -50,8 +51,8 @@ export async function handleLogin(event) {
     
     const user = data[0];
     
-    // Verificar contraseña (clave)
-    if (user.clave !== passwordInput) {
+    // Verificar contraseña (clave) compatible con bcrypt y texto plano
+    if (!verifyPassword(passwordInput, user.clave)) {
       showToast("Usuario o contraseña incorrectos.", "error");
       return;
     }
@@ -142,7 +143,7 @@ export async function saveNewPassword(event) {
     return;
   }
   
-  if (currentPassword !== state.currentUser.clave) {
+  if (!verifyPassword(currentPassword, state.currentUser.clave)) {
     showToast("La contraseña anterior es incorrecta.", "error");
     return;
   }
@@ -162,9 +163,10 @@ export async function saveNewPassword(event) {
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Actualizando...';
   
   try {
+    const hashedPassword = hashPassword(newPassword);
     const { data, error } = await state.supabaseClient
       .from('trabajador')
-      .update({ clave: newPassword })
+      .update({ clave: hashedPassword })
       .eq('id', state.currentUser.id)
       .select();
       
@@ -177,7 +179,7 @@ export async function saveNewPassword(event) {
     }
     
     // Update local state and sessions
-    state.currentUser.clave = newPassword;
+    state.currentUser.clave = hashedPassword;
     const userString = JSON.stringify(state.currentUser);
     if (localStorage.getItem('sessionUser')) {
       localStorage.setItem('sessionUser', userString);

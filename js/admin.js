@@ -1,7 +1,7 @@
 // js/admin.js - Operaciones del Panel Administrativo (CRUDs y cierre de evaluaciones)
 
 import { state } from './state.js';
-import { showToast, handleRlsError, openModal, closeModal, safeParseJSON } from './utils.js';
+import { showToast, handleRlsError, openModal, closeModal, safeParseJSON, hashPassword } from './utils.js';
 import { loadCaches } from './supabase.js';
 
 // ================= CRUD: TRABAJADORES =================
@@ -178,7 +178,7 @@ export async function saveTrabajador(event) {
   };
   
   if (clave) {
-    payload.clave = clave;
+    payload.clave = hashPassword(clave);
   }
   
   try {

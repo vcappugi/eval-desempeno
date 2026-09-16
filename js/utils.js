@@ -14,6 +14,39 @@ export function safeParseJSON(field) {
   }
 }
 
+// Helper para verificar contraseñas (soporta hash bcrypt y texto plano)
+export function verifyPassword(plainPassword, storedPassword) {
+  if (!storedPassword || !plainPassword) return false;
+  
+  // Si la contraseña almacenada es un hash bcrypt ($2a$, $2b$, $2y$)
+  if (storedPassword.startsWith('$2')) {
+    try {
+      const bcrypt = window.dcodeIO?.bcrypt || window.bcrypt;
+      if (bcrypt && bcrypt.compareSync) {
+        return bcrypt.compareSync(plainPassword, storedPassword);
+      }
+    } catch (e) {
+      console.warn("Error al verificar hash bcrypt:", e);
+    }
+  }
+  
+  // Comparación directa en texto plano (retrocompatibilidad)
+  return storedPassword === plainPassword;
+}
+
+// Helper para generar hash bcrypt con factor de costo 6
+export function hashPassword(plainPassword) {
+  try {
+    const bcrypt = window.dcodeIO?.bcrypt || window.bcrypt;
+    if (bcrypt && bcrypt.hashSync) {
+      return bcrypt.hashSync(plainPassword, 6);
+    }
+  } catch (e) {
+    console.warn("Error al generar hash bcrypt:", e);
+  }
+  return plainPassword;
+}
+
 // Helper para Toasts (Notificaciones)
 export function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');

@@ -3,10 +3,11 @@
 import { state } from './state.js';
 import { showToast } from './utils.js';
 import { populateSupervisorSelects, populateCompetenciasSelects } from './admin.js';
+import { CONFIG } from './config.js';
 
 export function initSupabase() {
-  const SUPABASE_URL = "https://qpyjdbchqbegqacurcdp.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_OfcpnM3O1aZl2mC1GL1_aA_wBltlze2";
+  const SUPABASE_URL = CONFIG.SUPABASE_URL;
+  const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
   
   // Utiliza el objeto global 'supabase' inyectado por el CDN
   state.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
