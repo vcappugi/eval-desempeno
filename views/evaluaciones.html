@@ -53,10 +53,14 @@
         <i class="fa-solid fa-arrow-left"></i> Volver a la Lista
       </button>
       <h3 style="margin: 0;"><i class="fa-solid fa-file-invoice text-primary"></i> Evaluación de Desempeño</h3>
-      <p style="margin: 0.25rem 0 0 0;">Evaluado: <strong id="evaluadoNombreLabel" class="text-primary">Nombre</strong> | Ficha: <span id="evaluadoFichaLabel">Ficha</span></p>
+      <p style="margin: 0.25rem 0 0 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span>Evaluado: <strong id="evaluadoNombreLabel" class="text-primary">Nombre</strong></span>
+        <span>| Ficha: <span id="evaluadoFichaLabel">Ficha</span></span>
+        <span>| Tipo: <span id="evaluadoTipoLabel" class="badge" style="background-color: rgba(21, 128, 61, 0.1); color: var(--primary); border: 1px solid var(--primary); font-size: 0.8rem;">ADMINISTRATIVO</span></span>
+      </p>
     </div>
 
-    <form id="evaluationForm" onsubmit="saveEvaluation(event)">
+    <form id="evaluationForm" novalidate onsubmit="saveEvaluation(event)">
       <input type="hidden" id="evaluadoIdInput">
       <input type="hidden" id="evaluacionIdInput"> <!-- Se llena si estamos editando -->
       
@@ -74,11 +78,13 @@
       
       <!-- Instrucciones de la evaluación -->
       <div style="margin-bottom: 2rem; padding: 1.25rem; border-radius: 12px; background-color: var(--primary-focus); border-left: 5px solid var(--primary); font-size: 0.95rem; line-height: 1.6; text-align: justify;">
-        A continuación encontrará un conjunto de factores a considerar para evaluar el desempeño del personal a su cargo. Tomando en consideración la definición y el alcance de cada factor, usted deberá identificar en cada uno de los factores la descripción que más se ajusta a la conducta del evaluado, marcando el numero correspondiente a la seleccion, en donde 
-        <span class="eval-badge eval-badge-1">(1) es Insuficiente</span>, 
-        <span class="eval-badge eval-badge-2">(2) Regular</span>, 
-        <span class="eval-badge eval-badge-3">(3) Bueno</span> y 
-        <span class="eval-badge eval-badge-4">(4) Muy Bueno</span>.
+        A continuación encontrará un conjunto de factores a considerar para evaluar el desempeño del personal a su cargo. Tomando en consideración la definición y el alcance de cada factor, usted deberá identificar en cada uno de los factores la descripción que más se ajusta a la conducta del evaluado, marcando el número correspondiente a la selección, en donde:
+        <div class="eval-badge-container" style="margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
+          <span class="eval-badge eval-badge-1">1. Nunca (0 Pts)</span>
+          <span class="eval-badge eval-badge-2">2. Casi Nunca (1 Pts)</span>
+          <span class="eval-badge eval-badge-3">3. Frecuentemente (2 Pts)</span>
+          <span class="eval-badge eval-badge-4">4. Siempre (3 Pts)</span>
+        </div>
       </div>
       
       <!-- Dynamic competencies and aspects will render here -->

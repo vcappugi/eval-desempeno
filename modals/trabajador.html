@@ -1,79 +1,100 @@
 <!-- MODAL: TRABAJADOR -->
 <dialog id="trabajadorModal">
-  <article style="width: 100%; max-width: 600px;">
-    <header>
-      <button aria-label="Close" rel="prev" onclick="closeModal('trabajadorModal')"></button>
-      <span id="trabajadorModalTitle" style="font-weight: 700; font-size: 1.25rem;">Agregar Trabajador</span>
+  <article class="trabajador-modal-content" style="width: 100%; max-width: 860px; max-height: 94vh; margin: auto; padding: 1.15rem 1.6rem;">
+    <header style="margin-bottom: 0.75rem; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--muted-border-color, rgba(0,0,0,0.1));">
+      <span id="trabajadorModalTitle" style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">Agregar Trabajador</span>
+      <button aria-label="Close" rel="prev" onclick="closeModal('trabajadorModal')" style="margin: 0;"></button>
     </header>
-    <form id="trabajadorForm" onsubmit="saveTrabajador(event)">
+    <form id="trabajadorForm" onsubmit="saveTrabajador(event)" style="margin-bottom: 0;">
       <input type="hidden" id="trabajadorIdInput">
       
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <label for="trabFicha">
+      <!-- Fila 1: Ficha, Cédula, Tipo de Personal -->
+      <div class="trab-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0.5rem 1rem; margin-bottom: 0.5rem;">
+        <label for="trabFicha" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
           Ficha
-          <input type="text" id="trabFicha" required>
+          <input type="text" id="trabFicha" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
         </label>
-        <label for="trabCedula">
+        <label for="trabCedula" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
           Cédula
-          <input type="text" id="trabCedula" required>
+          <input type="text" id="trabCedula" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+        </label>
+        <label for="trabTipo" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+          Tipo de Personal
+          <select id="trabTipo" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+            <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+            <option value="GERENCIAL">GERENCIAL</option>
+          </select>
         </label>
       </div>
 
-      <label for="trabNombre">
-        Nombre Completo
-        <input type="text" id="trabNombre" required>
-      </label>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <label for="trabEmpresa">
-          Empresa
-          <input type="text" id="trabEmpresa" required>
+      <!-- Fila 2: Nombre Completo (2 cols), Cargo (1 col) -->
+      <div class="trab-grid-2" style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 0.5rem 1rem; margin-bottom: 0.5rem;">
+        <label for="trabNombre" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+          Nombre Completo
+          <input type="text" id="trabNombre" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
         </label>
-        <label for="trabDepartamento">
-          Departamento
-          <input type="text" id="trabDepartamento" required>
-        </label>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <label for="trabCargo">
+        <label for="trabCargo" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
           Cargo
-          <input type="text" id="trabCargo" required>
+          <input type="text" id="trabCargo" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
         </label>
-        <label for="trabSupervisor">
+      </div>
+      
+      <!-- Fila 3: Empresa, Departamento, Supervisor -->
+      <div class="trab-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0.5rem 1rem; margin-bottom: 0.65rem;">
+        <label for="trabEmpresa" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+          Empresa
+          <input type="text" id="trabEmpresa" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+        </label>
+        <label for="trabDepartamento" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+          Departamento
+          <input type="text" id="trabDepartamento" required style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+        </label>
+        <label for="trabSupervisor" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
           Supervisor
-          <select id="trabSupervisor">
+          <select id="trabSupervisor" style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
             <option value="">Ninguno</option>
             <!-- Populated with all workers -->
           </select>
         </label>
       </div>
 
-      <hr style="margin: 1rem 0;">
-      <h5 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-key text-primary"></i> Credenciales de Acceso</h5>
+      <!-- Sección Credenciales y Rol -->
+      <div class="trab-credenciales-section" style="border-top: 1px solid var(--border-color, rgba(0,0,0,0.1)); padding-top: 0.5rem; margin-top: 0.25rem; margin-bottom: 0.5rem;">
+        <div class="trab-credenciales-title" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem;">
+          <i class="fa-solid fa-user-shield text-primary"></i> Rol y Credenciales de Acceso
+        </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <label for="trabUsuario">
-          Usuario
-          <input type="text" id="trabUsuario" placeholder="Opcional">
-        </label>
-        <label for="trabRol">
-          Rol en el Sistema
-          <select id="trabRol">
-            <option value="user">Usuario (Solo Evalúa)</option>
-            <option value="admin">Administrador (Acceso Completo)</option>
-          </select>
-        </label>
+        <!-- Fila 4: Rol en el Sistema, Usuario, Contraseña -->
+        <div class="trab-grid-3" id="trabRolRow" style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0.5rem 1rem; align-items: start;">
+          <label for="trabRol" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+            Rol en el Sistema
+            <select id="trabRol" onchange="handleTrabRolChange()" style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+              <option value="admin">admin</option>
+              <option value="usuario">usuario</option>
+              <option value="colaborador">colaborador</option>
+            </select>
+          </label>
+
+          <label for="trabUsuario" id="trabUsuarioLabel" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+            Usuario
+            <input type="text" id="trabUsuario" placeholder="Opcional" style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+          </label>
+
+          <label for="trabClave" id="trabClaveLabel" style="margin-bottom: 0; font-size: 0.8rem; font-weight: 600;">
+            Contraseña
+            <input type="password" id="trabClave" placeholder="Escriba la clave" style="margin-top: 0.2rem; margin-bottom: 0; padding: 0.38rem 0.65rem; height: auto;">
+          </label>
+
+          <div id="trabColaboradorInfo" style="grid-column: span 2; display: none; padding: 0.45rem 0.75rem; background-color: rgba(21, 128, 61, 0.05); border: 1px solid rgba(21, 128, 61, 0.15); border-radius: 6px; font-size: 0.8rem; color: var(--color); margin-top: 1.15rem;">
+            <i class="fa-solid fa-circle-info text-primary mr-1"></i> Los trabajadores con rol <strong>colaborador</strong> no requieren usuario ni contraseña.
+          </div>
+        </div>
       </div>
-
-      <label for="trabClave">
-        Contraseña
-        <input type="password" id="trabClave" placeholder="Escriba la clave para este usuario">
-      </label>
       
-      <footer style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
-        <button type="button" class="outline secondary" onclick="closeModal('trabajadorModal')">Cancelar</button>
-        <button type="submit" class="primary">Guardar</button>
+      <!-- Footer con botones -->
+      <footer class="trab-modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; padding-top: 0.5rem; margin-bottom: 0; border-top: 1px solid var(--border-color, rgba(0,0,0,0.1));">
+        <button type="button" class="outline secondary" onclick="closeModal('trabajadorModal')" style="width: auto; margin-bottom: 0; padding: 0.35rem 1.35rem; font-size: 0.875rem;">Cancelar</button>
+        <button type="submit" class="primary" style="width: auto; margin-bottom: 0; padding: 0.35rem 1.5rem; font-size: 0.875rem;">Guardar</button>
       </footer>
     </form>
   </article>

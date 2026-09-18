@@ -10,7 +10,7 @@ export async function renderTrabajadoresCrud() {
   const tbody = document.getElementById('trabajadoresTableBody');
   if (!tbody) return;
   
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando trabajadores...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando trabajadores...</td></tr>';
   
   const startIndex = (state.workersCurrentPage - 1) * state.workersPerPage;
   const endIndex = startIndex + state.workersPerPage - 1;
@@ -21,7 +21,7 @@ export async function renderTrabajadoresCrud() {
       .select('*', { count: 'exact' });
       
     if (state.workersSearchQuery) {
-      query = query.or(`cedula.ilike.%${state.workersSearchQuery}%,nombre.ilike.%${state.workersSearchQuery}%,usuario.ilike.%${state.workersSearchQuery}%`);
+      query = query.or(`cedula.ilike.%${state.workersSearchQuery}%,nombre.ilike.%${state.workersSearchQuery}%,usuario.ilike.%${state.workersSearchQuery}%,tipo.ilike.%${state.workersSearchQuery}%`);
     }
     
     const { data: paginatedWorkers, count, error } = await query
@@ -66,13 +66,25 @@ export async function renderTrabajadoresCrud() {
     }
     
     if (totalWorkers === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No se encontraron trabajadores que coincidan con la búsqueda.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No se encontraron trabajadores que coincidan con la búsqueda.</td></tr>';
       return;
     }
     
     let html = '';
     paginatedWorkers.forEach(w => {
       const createdDate = w.created_at ? new Date(w.created_at).toLocaleDateString() : 'N/A';
+      const tipoBadge = (w.tipo || 'ADMINISTRATIVO') === 'GERENCIAL' ?
+        `<span class="badge" style="background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">GERENCIAL</span>` :
+        `<span class="badge" style="background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">ADMINISTRATIVO</span>`;
+
+      const displayRol = (w.rol || 'colaborador').toLowerCase();
+      let rolBadge = `<span class="badge" style="background-color: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">colaborador</span>`;
+      if (displayRol === 'admin') {
+        rolBadge = `<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">admin</span>`;
+      } else if (displayRol === 'usuario' || displayRol === 'user') {
+        rolBadge = `<span class="badge" style="background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">usuario</span>`;
+      }
+
       html += `
         <tr>
           <td><strong>${w.ficha || 'N/A'}</strong></td>
@@ -81,7 +93,8 @@ export async function renderTrabajadoresCrud() {
           <td>${w.empresa}</td>
           <td>${w.departamento}</td>
           <td>${w.cargo}</td>
-          <td><mark style="background-color: ${w.rol === 'admin' ? '#dcfce7' : '#f3f4f6'}; color: ${w.rol === 'admin' ? '#15803d' : '#374151'}">${w.rol}</mark></td>
+          <td>${tipoBadge}</td>
+          <td>${rolBadge}</td>
           <td>${createdDate}</td>
           <td style="text-align: right; white-space: nowrap;">
             <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editTrabajador(${w.id})">
@@ -97,7 +110,7 @@ export async function renderTrabajadoresCrud() {
     tbody.innerHTML = html;
   } catch (err) {
     console.error("Error al renderizar trabajadores en admin:", err);
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--form-element-invalid-border-color);">Error al cargar los trabajadores del servidor.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--form-element-invalid-border-color);">Error al cargar los trabajadores del servidor.</td></tr>';
     showToast("Error al cargar los trabajadores.", "error");
   }
 }
@@ -116,6 +129,40 @@ export async function handleWorkerSearch(query) {
   await renderTrabajadoresCrud();
 }
 
+export function handleTrabRolChange() {
+  const rolSelect = document.getElementById('trabRol');
+  if (!rolSelect) return;
+  
+  const rol = rolSelect.value.toLowerCase();
+  const usuarioLabel = document.getElementById('trabUsuarioLabel');
+  const claveLabel = document.getElementById('trabClaveLabel');
+  const infoColab = document.getElementById('trabColaboradorInfo');
+  const claveInput = document.getElementById('trabClave');
+  const usuarioInput = document.getElementById('trabUsuario');
+  const isEditing = Boolean(document.getElementById('trabajadorIdInput')?.value);
+  
+  if (rol === 'colaborador') {
+    if (usuarioLabel) usuarioLabel.style.display = 'none';
+    if (claveLabel) claveLabel.style.display = 'none';
+    if (infoColab) infoColab.style.display = 'block';
+    if (claveInput) {
+      claveInput.required = false;
+      claveInput.value = '';
+    }
+    if (usuarioInput) {
+      usuarioInput.value = '';
+    }
+  } else {
+    // 'usuario' o 'admin'
+    if (usuarioLabel) usuarioLabel.style.display = 'block';
+    if (claveLabel) claveLabel.style.display = 'block';
+    if (infoColab) infoColab.style.display = 'none';
+    if (claveInput) {
+      claveInput.required = !isEditing;
+    }
+  }
+}
+
 export async function openTrabajadorModal() {
   await openModal('trabajadorModal');
   populateSupervisorSelects();
@@ -123,7 +170,11 @@ export async function openTrabajadorModal() {
   document.getElementById('trabajadorForm').reset();
   document.getElementById('trabajadorIdInput').value = '';
   document.getElementById('trabajadorModalTitle').textContent = 'Agregar Trabajador';
-  document.getElementById('trabClave').required = true;
+  const trabTipo = document.getElementById('trabTipo');
+  if (trabTipo) trabTipo.value = 'ADMINISTRATIVO';
+  const trabRol = document.getElementById('trabRol');
+  if (trabRol) trabRol.value = 'colaborador';
+  handleTrabRolChange();
 }
 
 export async function editTrabajador(id) {
@@ -140,13 +191,20 @@ export async function editTrabajador(id) {
   document.getElementById('trabEmpresa').value = w.empresa || '';
   document.getElementById('trabDepartamento').value = w.departamento || '';
   document.getElementById('trabCargo').value = w.cargo || '';
+  const trabTipo = document.getElementById('trabTipo');
+  if (trabTipo) trabTipo.value = w.tipo || 'ADMINISTRATIVO';
   document.getElementById('trabSupervisor').value = w.supervisor_id || '';
   document.getElementById('trabUsuario').value = w.usuario || '';
-  document.getElementById('trabRol').value = w.rol || 'user';
+  
+  let currentRol = (w.rol || 'colaborador').toLowerCase();
+  if (currentRol === 'user') currentRol = 'usuario';
+  document.getElementById('trabRol').value = currentRol;
   
   // Para editar, la clave no es obligatoria
   document.getElementById('trabClave').value = '';
   document.getElementById('trabClave').required = false;
+  
+  handleTrabRolChange();
   
   document.getElementById('trabajadorModalTitle').textContent = 'Modificar Trabajador';
 }
@@ -160,11 +218,25 @@ export async function saveTrabajador(event) {
   const empresa = document.getElementById('trabEmpresa').value.trim();
   const departamento = document.getElementById('trabDepartamento').value.trim();
   const cargo = document.getElementById('trabCargo').value.trim();
+  const trabTipo = document.getElementById('trabTipo');
+  const tipo = trabTipo ? trabTipo.value : 'ADMINISTRATIVO';
+
+  if (tipo !== 'ADMINISTRATIVO' && tipo !== 'GERENCIAL') {
+    showToast("El tipo debe ser ADMINISTRATIVO o GERENCIAL.", "error");
+    return;
+  }
+
   const supervisor_id = document.getElementById('trabSupervisor').value || null;
-  const usuario = document.getElementById('trabUsuario').value.trim() || null;
   const rol = document.getElementById('trabRol').value;
-  const clave = document.getElementById('trabClave').value;
+  const isColaborador = rol.toLowerCase() === 'colaborador';
+  const usuario = isColaborador ? null : (document.getElementById('trabUsuario').value.trim() || null);
+  const clave = isColaborador ? null : document.getElementById('trabClave').value;
   
+  if (!id && !isColaborador && !clave) {
+    showToast("Debe asignar una contraseña para usuarios con acceso al sistema.", "error");
+    return;
+  }
+
   const payload = {
     ficha,
     cedula,
@@ -172,12 +244,15 @@ export async function saveTrabajador(event) {
     empresa,
     departamento,
     cargo,
+    tipo,
     supervisor_id: supervisor_id ? parseInt(supervisor_id) : null,
     usuario,
     rol
   };
   
-  if (clave) {
+  if (isColaborador) {
+    payload.clave = null;
+  } else if (clave) {
     payload.clave = hashPassword(clave);
   }
   
@@ -676,10 +751,10 @@ export function renderFechasEvalCrud() {
   const tbody = document.getElementById('fechasEvalTableBody');
   if (!tbody) return;
   
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando fechas...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando fechas...</td></tr>';
   
   if (state.fechaEvalCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No hay fechas de evaluación registradas.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No hay fechas de evaluación registradas.</td></tr>';
     return;
   }
   
@@ -690,13 +765,20 @@ export function renderFechasEvalCrud() {
     // Verificar si esta fecha ya tiene evaluaciones realizadas
     const tieneEvaluaciones = state.evaluationsCache.some(ev => {
       try {
-        const parsed = safeParseJSON(ev.evaluacion);
-        // O simplemente comparar ev.fecha con fe.fecha
         return ev.fecha === fe.fecha;
       } catch (e) {
         return false;
       }
     });
+
+    const isPublicado = Boolean(fe.publicado);
+    const publicadoBtn = isPublicado ?
+      `<button class="outline" style="padding: 0.25rem 0.65rem; margin-bottom: 0; font-size: 0.8rem; border-color: #15803d; color: #15803d; background-color: rgba(21, 128, 61, 0.08); border-radius: 6px; font-weight: 600; cursor: pointer;" onclick="toggleFechaEvalPublicado(${fe.id})" title="Click para despublicar">
+        <i class="fa-solid fa-circle-check" style="margin-right: 0.35rem;"></i> Publicado
+      </button>` :
+      `<button class="outline secondary" style="padding: 0.25rem 0.65rem; margin-bottom: 0; font-size: 0.8rem; border-color: #9ca3af; color: #6b7280; background-color: rgba(156, 163, 175, 0.08); border-radius: 6px; font-weight: 600; cursor: pointer;" onclick="toggleFechaEvalPublicado(${fe.id})" title="Click para publicar">
+        <i class="fa-solid fa-circle-xmark" style="margin-right: 0.35rem;"></i> No Publicado
+      </button>`;
     
     let actionButtons = '';
     if (tieneEvaluaciones) {
@@ -721,6 +803,7 @@ export function renderFechasEvalCrud() {
         <td><strong>${fe.id}</strong></td>
         <td>${new Date(fe.fecha + 'T00:00:00').toLocaleDateString()}</td>
         <td>${createdDate}</td>
+        <td>${publicadoBtn}</td>
         <td style="text-align: right; white-space: nowrap;">
           ${actionButtons}
         </td>
@@ -730,11 +813,35 @@ export function renderFechasEvalCrud() {
   tbody.innerHTML = html;
 }
 
+export async function toggleFechaEvalPublicado(id) {
+  const fe = state.fechaEvalCache.find(item => item.id === id);
+  if (!fe) return;
+  
+  const nuevoEstado = !fe.publicado;
+  
+  try {
+    const { error } = await state.supabaseClient
+      .from('fecha_eval')
+      .update({ publicado: nuevoEstado })
+      .eq('id', id);
+      
+    if (error) throw error;
+    
+    showToast(`Fecha ${nuevoEstado ? 'publicada' : 'despublicada'} exitosamente.`);
+    await loadCaches();
+    renderFechasEvalCrud();
+  } catch (err) {
+    handleRlsError(err);
+  }
+}
+
 export async function openFechaEvalModal() {
   await openModal('fechaEvalModal');
   document.getElementById('fechaEvalForm').reset();
   document.getElementById('fechaEvalIdInput').value = '';
   document.getElementById('fechaEvalFecha').disabled = false;
+  const pubCheckbox = document.getElementById('fechaEvalPublicado');
+  if (pubCheckbox) pubCheckbox.checked = false;
   document.getElementById('fechaEvalModalTitle').textContent = 'Agregar Fecha de Evaluación';
 }
 
@@ -742,17 +849,15 @@ export async function editFechaEval(id) {
   const fe = state.fechaEvalCache.find(item => item.id === id);
   if (!fe) return;
   
-  // Validar si tiene evaluaciones antes de permitir abrir edición
-  const tieneEvaluaciones = state.evaluationsCache.some(ev => ev.fecha === fe.fecha);
-  if (tieneEvaluaciones) {
-    showToast("No se puede modificar una fecha que ya tiene evaluaciones realizadas.", "error");
-    return;
-  }
-  
   await openModal('fechaEvalModal');
   document.getElementById('fechaEvalIdInput').value = fe.id;
   document.getElementById('fechaEvalFecha').value = fe.fecha;
-  document.getElementById('fechaEvalFecha').disabled = false;
+  
+  const tieneEvaluaciones = state.evaluationsCache.some(ev => ev.fecha === fe.fecha);
+  document.getElementById('fechaEvalFecha').disabled = tieneEvaluaciones;
+  
+  const pubCheckbox = document.getElementById('fechaEvalPublicado');
+  if (pubCheckbox) pubCheckbox.checked = Boolean(fe.publicado);
   
   document.getElementById('fechaEvalModalTitle').textContent = 'Modificar Fecha de Evaluación';
 }
@@ -761,6 +866,8 @@ export async function saveFechaEval(event) {
   if (event) event.preventDefault();
   const id = document.getElementById('fechaEvalIdInput').value;
   const fecha = document.getElementById('fechaEvalFecha').value;
+  const pubCheckbox = document.getElementById('fechaEvalPublicado');
+  const publicado = pubCheckbox ? pubCheckbox.checked : false;
   
   if (!fecha) {
     showToast("Por favor seleccione una fecha.", "error");
@@ -770,7 +877,7 @@ export async function saveFechaEval(event) {
   // Validar si se está modificando y si la fecha vieja tenía evaluaciones
   if (id) {
     const oldFe = state.fechaEvalCache.find(item => item.id === parseInt(id));
-    if (oldFe) {
+    if (oldFe && oldFe.fecha !== fecha) {
       const tieneEvaluaciones = state.evaluationsCache.some(ev => ev.fecha === oldFe.fecha);
       if (tieneEvaluaciones) {
         showToast("No se puede modificar una fecha que ya tiene evaluaciones realizadas.", "error");
@@ -786,7 +893,7 @@ export async function saveFechaEval(event) {
     return;
   }
   
-  const payload = { fecha };
+  const payload = { fecha, publicado };
   
   try {
     if (id) {

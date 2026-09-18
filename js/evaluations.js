@@ -129,7 +129,7 @@ export function changeEvalsPage(direction) {
   renderSubordinados();
 }
 
-export function startEvaluation(trabajadorId) {
+export async function startEvaluation(trabajadorId) {
   const t = state.workersCache.find(worker => worker.id === trabajadorId);
   if (!t) return;
   
@@ -137,6 +137,10 @@ export function startEvaluation(trabajadorId) {
   document.getElementById('evaluadoIdInput').value = t.id;
   document.getElementById('evaluadoNombreLabel').textContent = t.nombre;
   document.getElementById('evaluadoFichaLabel').textContent = t.ficha || 'N/A';
+  const tipoLabel = document.getElementById('evaluadoTipoLabel');
+  if (tipoLabel) {
+    tipoLabel.textContent = t.tipo || 'ADMINISTRATIVO';
+  }
   
   // Resetear formulario
   document.getElementById('evaluacionIdInput').value = '';
@@ -153,24 +157,59 @@ export function startEvaluation(trabajadorId) {
     });
   }
   
-  if (state.fechaEvalCache.length > 0) {
-    selectFecha.value = state.fechaEvalCache[0].fecha;
-  } else {
-    showToast("No hay fechas de evaluación registradas en el sistema.", "warning");
-  }
-  
-  document.getElementById('evalEstadoLabel').value = 'Abierta (Editable)';
-  document.getElementById('btnGuardarEvaluacion').disabled = false;
-  
-  // Renderizar formulario de competencias y aspectos
-  renderEvaluationFormQuestions();
-  
-  // Verificar si ya existe evaluación para esta fecha
-  checkEvaluationDateUnique();
+  // Renderizar formulario de competencias y aspectos según el tipo del trabajador
+  renderEvaluationFormQuestions(t.tipo);
   
   // Mostrar formulario de evaluación y ocultar lista
   document.getElementById('evaluationFormContainer').style.display = 'block';
   document.getElementById('subordinadosTableBody').closest('.premium-card').style.display = 'none';
+
+  // Consultar evaluaciones de este trabajador en Supabase para asegurar datos frescos
+  try {
+    const { data: workerDbEvals, error } = await state.supabaseClient
+      .from('evaluacion')
+      .select('*')
+      .like('evaluacion', `%"trabajador_id":${trabajadorId}%`);
+      
+    if (!error && workerDbEvals && workerDbEvals.length > 0) {
+      // Integrar a caché local
+      workerDbEvals.forEach(wev => {
+        const idx = state.evaluationsCache.findIndex(x => x.id === wev.id);
+        if (idx >= 0) state.evaluationsCache[idx] = wev;
+        else state.evaluationsCache.push(wev);
+      });
+      
+      // Fechas con evaluaciones para este trabajador
+      const fechasConEvaluacion = [...new Set(workerDbEvals.map(ev => ev.fecha))].sort((a,b) => new Date(b) - new Date(a));
+      
+      // Agregar fechas faltantes al select si no existieran
+      if (selectFecha) {
+        fechasConEvaluacion.forEach(f => {
+          if (![...selectFecha.options].some(opt => opt.value === f)) {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = new Date(f + 'T00:00:00').toLocaleDateString();
+            selectFecha.appendChild(opt);
+          }
+        });
+        
+        // Seleccionar por defecto la fecha que tiene evaluación existente
+        if (fechasConEvaluacion.length > 0) {
+          selectFecha.value = fechasConEvaluacion[0];
+        }
+      }
+    } else if (state.fechaEvalCache.length > 0 && selectFecha) {
+      selectFecha.value = state.fechaEvalCache[0].fecha;
+    }
+  } catch (err) {
+    console.error("Error al sincronizar evaluaciones del trabajador:", err);
+  }
+
+  document.getElementById('evalEstadoLabel').value = 'Abierta (Editable)';
+  document.getElementById('btnGuardarEvaluacion').disabled = false;
+  
+  // Verificar y marcar las respuestas almacenadas para la fecha activa
+  await checkEvaluationDateUnique();
 }
 
 export function closeEvaluationForm() {
@@ -178,7 +217,7 @@ export function closeEvaluationForm() {
   document.getElementById('subordinadosTableBody').closest('.premium-card').style.display = 'block';
 }
 
-export function renderEvaluationFormQuestions() {
+export function renderEvaluationFormQuestions(trabajadorTipo) {
   const container = document.getElementById('dynamicCompetenciesContainer');
   if (!container) return;
   
@@ -199,16 +238,54 @@ export function renderEvaluationFormQuestions() {
     `;
     return;
   }
+
+  // Determinar tipo de trabajador objetivo (GERENCIAL o ADMINISTRATIVO)
+  let tipoTrabajador = trabajadorTipo;
+  if (!tipoTrabajador) {
+    const evaluadoId = parseInt(document.getElementById('evaluadoIdInput')?.value);
+    if (evaluadoId) {
+      const worker = state.workersCache.find(w => w.id === evaluadoId);
+      if (worker) tipoTrabajador = worker.tipo;
+    }
+  }
+  const tipoNormalizado = (tipoTrabajador || 'ADMINISTRATIVO').toUpperCase().trim();
+
+  // Filtrar competencias según el tipo del trabajador (GERENCIAL o ADMINISTRATIVO)
+  const clasesFiltradas = state.classesCache.filter(c => {
+    const cTipo = (c.tipo || '').toUpperCase().trim();
+    return cTipo === tipoNormalizado;
+  });
+
+  if (clasesFiltradas.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem; background: rgba(21, 128, 61, 0.05); border: 1px dashed var(--primary); border-radius: 12px; color: var(--primary);">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
+        <p style="margin: 0; font-weight: 600; font-size: 1.1rem;">No hay competencias registradas para el tipo "${tipoNormalizado}".</p>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--muted-color);">Por favor, verifique la configuración de competencias en el Panel Administrativo.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const escalaOptions = [
+    { valor: 1, label: 'Nunca', pts: '(0 Pts)' },
+    { valor: 2, label: 'Casi Nunca', pts: '(1 Pts)' },
+    { valor: 3, label: 'Frecuentemente', pts: '(2 Pts)' },
+    { valor: 4, label: 'Siempre', pts: '(3 Pts)' }
+  ];
   
-  // Agrupar aspectos por competencia (clase_id) ordenando por competencia y luego aspecto
-  state.classesCache.forEach(c => {
+  // Agrupar aspectos por competencia (clase_id) filtradas por tipo del trabajador
+  clasesFiltradas.forEach(c => {
     const aspectosDeClase = state.aspectsCache.filter(a => a.clase_id === c.id && a.activo !== false);
     
     // Solo renderizar la competencia si tiene aspectos de evaluación asociados
     if (aspectosDeClase.length > 0) {
       let claseHTML = `
         <div class="competencia-section">
-          <h4 style="margin: 0; color: var(--primary); font-size: 1.25rem;">${c.titulo}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <h4 style="margin: 0; color: var(--primary); font-size: 1.25rem;">${c.titulo}</h4>
+            ${c.tipo ? `<span class="badge" style="font-size: 0.75rem; background-color: rgba(21, 128, 61, 0.1); color: var(--primary); border: 1px solid var(--primary);">${c.tipo}</span>` : ''}
+          </div>
           <p style="font-size: 0.875rem; color: var(--muted-color); margin-bottom: 1rem; text-align: justify;">${c.descripcion || ''}</p>
           <div class="aspectos-container">
       `;
@@ -219,34 +296,44 @@ export function renderEvaluationFormQuestions() {
         if (a.tipo === 'rango1,4') {
           answerFieldHTML = `
             <div class="rango-container" data-aspecto-id="${a.id}">
-              ${[1,2,3,4].map(v => `
-                <label class="rango-option" id="label-asp-${a.id}-${v}" onclick="selectRangoOption(${a.id}, ${v})">
-                  <input type="radio" name="aspecto_${a.id}" value="${v}" required>
-                  <span>${v}</span>
-                </label>
+              ${escalaOptions.map(opt => `
+                <div class="rango-option" data-valor="${opt.valor}" id="label-asp-${a.id}-${opt.valor}" onclick="selectRangoOption(${a.id}, ${opt.valor})" title="${opt.valor}. ${opt.label} ${opt.pts}">
+                  <input type="radio" name="aspecto_${a.id}" value="${opt.valor}" style="display: none;">
+                  <span class="rango-num">${opt.valor}</span>
+                  <span class="rango-title">${opt.label}</span>
+                  <span class="rango-pts">${opt.pts}</span>
+                </div>
               `).join('')}
             </div>
           `;
         } else if (a.tipo === 'si/no') {
           answerFieldHTML = `
             <div class="sino-container" data-aspecto-id="${a.id}">
-              <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; margin-bottom: 0;">
-                <input type="radio" name="aspecto_${a.id}" value="si" required> Sí
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; margin-bottom: 0;">
+                <input type="radio" name="aspecto_${a.id}" value="si"> Sí
               </label>
-              <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; margin-bottom: 0;">
-                <input type="radio" name="aspecto_${a.id}" value="no" required> No
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; margin-bottom: 0;">
+                <input type="radio" name="aspecto_${a.id}" value="no"> No
               </label>
             </div>
           `;
         } else { // text
           answerFieldHTML = `
-            <textarea name="aspecto_${a.id}" rows="2" placeholder="Escriba comentarios y observaciones..." required style="margin-top: 0.5rem;"></textarea>
+            <textarea name="aspecto_${a.id}" rows="2" placeholder="Escriba comentarios u observaciones (opcional)..." style="margin-top: 0.5rem;"></textarea>
           `;
         }
         
+        const ponderacionBadge = (a.ponderacion !== null && a.ponderacion !== undefined && a.ponderacion !== '')
+          ? `<span style="font-size: 0.75rem; font-weight: 600; color: var(--muted-color); margin-left: 0.5rem;">[Pond: ${a.ponderacion}%]</span>`
+          : '';
+
         claseHTML += `
           <div class="aspecto-row" data-aspecto-id="${a.id}" data-clase-id="${c.id}" data-tipo="${a.tipo}">
-            <div class="aspecto-desc"><mark style="background-color: var(--primary-focus); color: var(--primary); border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>${a.descripcion}</div>
+            <div class="aspecto-desc">
+              <mark style="background-color: var(--primary-focus); color: var(--primary); border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>
+              ${a.descripcion}
+              ${ponderacionBadge}
+            </div>
             ${answerFieldHTML}
           </div>
         `;
@@ -262,25 +349,37 @@ export function renderEvaluationFormQuestions() {
   });
 }
 
-// Lógica de selección de botón de rango 1-4
+// Lógica de selección de botón de rango 1-4 (con soporte de toggle/deselección)
 export function selectRangoOption(aspectoId, valor) {
+  const activeOpt = document.getElementById(`label-asp-${aspectoId}-${valor}`);
+  const radio = activeOpt ? activeOpt.querySelector('input[type="radio"]') : null;
+  
+  // Si ya estaba seleccionada, permitir deseleccionar (queda sin respuesta / -1)
+  if (activeOpt && activeOpt.classList.contains('selected')) {
+    activeOpt.classList.remove('selected');
+    if (radio) radio.checked = false;
+    return;
+  }
+  
   // Deseleccionar todas las opciones del rango
   for (let i = 1; i <= 4; i++) {
-    const label = document.getElementById(`label-asp-${aspectoId}-${i}`);
-    if (label) label.classList.remove('selected');
+    const opt = document.getElementById(`label-asp-${aspectoId}-${i}`);
+    if (opt) {
+      opt.classList.remove('selected');
+      const r = opt.querySelector('input[type="radio"]');
+      if (r) r.checked = false;
+    }
   }
   
   // Seleccionar la opción clickeada
-  const activeLabel = document.getElementById(`label-asp-${aspectoId}-${valor}`);
-  if (activeLabel) {
-    activeLabel.classList.add('selected');
-    const radio = activeLabel.querySelector('input[type="radio"]');
+  if (activeOpt) {
+    activeOpt.classList.add('selected');
     if (radio) radio.checked = true;
   }
 }
 
 // Verificar si existe evaluación previa en la fecha seleccionada
-export function checkEvaluationDateUnique() {
+export async function checkEvaluationDateUnique() {
   const trabajadorId = parseInt(document.getElementById('evaluadoIdInput').value);
   const fecha = document.getElementById('evalFecha').value;
   
@@ -290,18 +389,40 @@ export function checkEvaluationDateUnique() {
   resetAnswersInForm();
   
   // Buscar en las evaluaciones cargadas en caché
-  const evalRows = state.evaluationsCache.filter(ev => {
+  let evalRows = state.evaluationsCache.filter(ev => {
     if (ev.fecha !== fecha) return false;
     try {
       const parsed = safeParseJSON(ev.evaluacion);
-      return parsed && parsed.trabajador_id === trabajadorId;
+      return parsed && String(parsed.trabajador_id) === String(trabajadorId);
     } catch(e) {
       return false;
     }
   });
   
+  // Si no se encontraron en caché para esta fecha, consultar a Supabase directamente
+  if (evalRows.length === 0) {
+    try {
+      const { data, error } = await state.supabaseClient
+        .from('evaluacion')
+        .select('*')
+        .eq('fecha', fecha)
+        .like('evaluacion', `%"trabajador_id":${trabajadorId}%`);
+        
+      if (!error && data && data.length > 0) {
+        data.forEach(wev => {
+          const idx = state.evaluationsCache.findIndex(x => x.id === wev.id);
+          if (idx >= 0) state.evaluationsCache[idx] = wev;
+          else state.evaluationsCache.push(wev);
+        });
+        evalRows = data;
+      }
+    } catch(e) {
+      console.error("Error al buscar evaluación para fecha:", e);
+    }
+  }
+  
   if (evalRows.length > 0) {
-    // Ya existe evaluación para este trabajador en esta fecha!
+    // Ya existe evaluación para este trabajador en esta fecha
     const isClosed = evalRows[0].estado === true;
     
     document.getElementById('evalEstadoLabel').value = isClosed ? 'Cerrada (Lectura Única)' : 'Abierta (Modificable)';
@@ -319,10 +440,24 @@ export function checkEvaluationDateUnique() {
         if (aspectoRow) {
           const tipo = aspectoRow.getAttribute('data-tipo');
           
+          // Si tiene valor "-1" o está vacío, se deja sin respuesta
+          if (rating === '-1' || rating === -1 || rating === '' || rating === null || rating === undefined) {
+            disableFieldsInRow(aspectoRow, isClosed);
+            return;
+          }
+          
           if (tipo === 'rango1,4') {
-            selectRangoOption(aspectoId, parseInt(rating));
+            const valNum = parseInt(rating);
+            if (!isNaN(valNum) && valNum >= 1 && valNum <= 4) {
+              const activeOpt = document.getElementById(`label-asp-${aspectoId}-${valNum}`);
+              if (activeOpt) {
+                activeOpt.classList.add('selected');
+                const radio = activeOpt.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+              }
+            }
           } else if (tipo === 'si/no') {
-            const radio = aspectoRow.querySelector(`input[value="${rating.toLowerCase()}"]`);
+            const radio = aspectoRow.querySelector(`input[value="${String(rating).toLowerCase()}"]`);
             if (radio) radio.checked = true;
           } else {
             const textarea = aspectoRow.querySelector('textarea');
@@ -340,7 +475,7 @@ export function checkEvaluationDateUnique() {
     // Deshabilitar la selección de fecha si la evaluación existe para protegerla
     document.getElementById('evalFecha').disabled = isClosed;
     
-    showToast(`Cargada evaluación existente del ${new Date(fecha).toLocaleDateString()}. Status: ${isClosed ? 'Cerrada' : 'Abierta'}.`, "info");
+    showToast(`Cargada evaluación existente del ${new Date(fecha + 'T00:00:00').toLocaleDateString()}. Status: ${isClosed ? 'Cerrada' : 'Abierta'}.`, "info");
   } else {
     // Es una nueva evaluación
     document.getElementById('evalEstadoLabel').value = 'Abierta (Editable)';
@@ -387,6 +522,16 @@ export async function saveEvaluation(event) {
   const fecha = document.getElementById('evalFecha').value;
   const estadoLabel = document.getElementById('evalEstadoLabel').value;
   
+  if (!trabajadorId) {
+    showToast("No se ha identificado el trabajador a evaluar.", "error");
+    return;
+  }
+
+  if (!fecha) {
+    showToast("Por favor seleccione una fecha de evaluación válida.", "error");
+    return;
+  }
+  
   if (estadoLabel.includes('Cerrada')) {
     showToast("No se puede guardar una evaluación cerrada.", "error");
     return;
@@ -397,7 +542,7 @@ export async function saveEvaluation(event) {
     if (ev.fecha !== fecha) return false;
     try {
       const parsed = safeParseJSON(ev.evaluacion);
-      return parsed && parsed.trabajador_id === trabajadorId;
+      return parsed && String(parsed.trabajador_id) === String(trabajadorId);
     } catch(e) {
       return false;
     }
@@ -406,8 +551,6 @@ export async function saveEvaluation(event) {
   // Recopilar respuestas del formulario
   const rows = document.querySelectorAll('.aspecto-row');
   const insertPayloads = [];
-  
-  let valid = true;
   
   rows.forEach(r => {
     const aspectoId = parseInt(r.getAttribute('data-aspecto-id'));
@@ -427,13 +570,13 @@ export async function saveEvaluation(event) {
       if (textarea) answerValue = textarea.value.trim();
     }
     
+    // Si no se ha seleccionado respuesta o quedan respuestas sin seleccionar, agregarla como "-1" (no aplica)
     if (!answerValue) {
-      valid = false;
-      return;
+      answerValue = "-1";
     }
     
     // Determinar si ya existía una fila para este aspecto
-    const existingRow = existingRows.find(ev => ev.item_evaluacion_id === aspectoId);
+    const existingRow = existingRows.find(ev => Number(ev.item_evaluacion_id) === Number(aspectoId));
     
     const payload = {
       clase_id: claseId,
@@ -446,18 +589,25 @@ export async function saveEvaluation(event) {
       })
     };
     
-    if (existingRow) {
+    if (existingRow && existingRow.id) {
       payload.id = existingRow.id; // Incluir ID para upsert
     }
     
     insertPayloads.push(payload);
   });
   
-  if (!valid) {
-    showToast("Por favor responda a todos los aspectos de evaluación.", "error");
+  if (insertPayloads.length === 0) {
+    showToast("No hay aspectos a evaluar en el formulario.", "warning");
     return;
   }
   
+  const btnGuardar = document.getElementById('btnGuardarEvaluacion');
+  const originalBtnText = btnGuardar ? btnGuardar.innerHTML : '';
+  if (btnGuardar) {
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+  }
+
   try {
     const { error } = await state.supabaseClient
       .from('evaluacion')
@@ -472,5 +622,10 @@ export async function saveEvaluation(event) {
     renderSubordinados();
   } catch (err) {
     handleRlsError(err);
+  } finally {
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.innerHTML = originalBtnText;
+    }
   }
 }

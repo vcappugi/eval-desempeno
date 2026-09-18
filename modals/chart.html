@@ -6,9 +6,19 @@
       <span id="workerChartModalTitle" style="font-weight: 700; font-size: 1.25rem;">Gráfico de Desempeño</span>
     </header>
     
-    <div style="text-align: center; margin-bottom: 1.5rem;">
+    <div style="text-align: center; margin-bottom: 1.25rem;">
       <h4 style="margin: 0;" id="chartWorkerName">Nombre del Trabajador</h4>
       <p style="margin: 0.25rem 0 0 0; color: var(--muted-color); font-size: 0.875rem;">Ficha: <span id="chartWorkerFicha">N/A</span> | Cargo: <span id="chartWorkerCargo">N/A</span></p>
+    </div>
+
+    <!-- Filtro de Período de Evaluación -->
+    <div style="background-color: rgba(21, 128, 61, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+      <label for="chartPeriodFilter" style="margin-bottom: 0; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
+        <i class="fa-solid fa-calendar-days text-primary"></i> Período de Evaluación:
+      </label>
+      <select id="chartPeriodFilter" style="max-width: 320px; margin-bottom: 0; font-size: 0.875rem; padding: 0.35rem 0.75rem;" onchange="filterWorkerChartByPeriod()">
+        <!-- Populated dynamically -->
+      </select>
     </div>
 
     <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; align-items: center; flex-wrap: wrap;">

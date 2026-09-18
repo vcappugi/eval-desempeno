@@ -5,7 +5,7 @@ import { initSupabase } from './supabase.js';
 import { closeModal } from './utils.js';
 import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js';
 import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage } from './evaluations.js';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage } from './evaluations.js?v=2.1.9';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -25,9 +25,11 @@ import {
   editFechaEval,
   deleteFechaEval,
   openFechaEvalModal,
-  saveFechaEval
-} from './admin.js';
-import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange } from './reports.js';
+  saveFechaEval,
+  toggleFechaEvalPublicado,
+  handleTrabRolChange
+} from './admin.js?v=2.1.9';
+import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange, filterWorkerChartByPeriod } from './reports.js';
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
@@ -71,6 +73,7 @@ window.changeWorkersPage = changeWorkersPage;
 window.handleWorkerSearch = handleWorkerSearch;
 window.openTrabajadorModal = openTrabajadorModal;
 window.saveTrabajador = saveTrabajador;
+window.handleTrabRolChange = handleTrabRolChange;
 
 // CRUD Competencias
 window.editCompetencia = editCompetencia;
@@ -92,9 +95,11 @@ window.editFechaEval = editFechaEval;
 window.deleteFechaEval = deleteFechaEval;
 window.openFechaEvalModal = openFechaEvalModal;
 window.saveFechaEval = saveFechaEval;
+window.toggleFechaEvalPublicado = toggleFechaEvalPublicado;
 
 // Reportes y Gráficos
 window.showWorkerChartModal = showWorkerChartModal;
 window.renderReporteSubordinados = renderReporteSubordinados;
 window.printReporteSubordinados = printReporteSubordinados;
 window.handleReportDeptChange = handleReportDeptChange;
+window.filterWorkerChartByPeriod = filterWorkerChartByPeriod;

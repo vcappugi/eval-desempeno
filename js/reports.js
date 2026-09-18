@@ -34,7 +34,9 @@ export function renderIndicadoresGenerales() {
       const key = `${trabajadorId}_${ev.fecha}`;
       
       evaluadosSet.add(trabajadorId);
-      totalAspectosEvaluados++;
+      if (valor !== '-1' && valor !== -1 && valor !== '' && valor !== null && valor !== undefined) {
+        totalAspectosEvaluados++;
+      }
       
       // Agrupar
       if (!groupedEvals[key]) {
@@ -47,11 +49,11 @@ export function renderIndicadoresGenerales() {
         groupedEvals[key].estado = true;
       }
       
-      // Si el aspecto es de tipo numérico (rango1,4), calculamos promedios
+      // Si el aspecto es de tipo numérico (rango1,4), calculamos promedios (excluyendo -1)
       const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
       if (aspecto && aspecto.tipo === 'rango1,4') {
         const valNum = parseFloat(valor);
-        if (!isNaN(valNum)) {
+        if (!isNaN(valNum) && valNum >= 0) {
           const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
           const claseId = ev.clase_id;
           
@@ -152,10 +154,13 @@ export function renderIndicadoresGenerales() {
   }
 }
 
+let currentChartWorkerId = null;
+
 export async function showWorkerChartModal(workerId) {
   const w = state.workersCache.find(worker => worker.id === workerId);
   if (!w) return;
   
+  currentChartWorkerId = workerId;
   await openModal('workerChartModal');
   
   document.getElementById('chartWorkerName').textContent = w.nombre;
@@ -171,6 +176,59 @@ export async function showWorkerChartModal(workerId) {
       return false;
     }
   });
+
+  // Poblar selector de período de evaluación
+  const periodSelect = document.getElementById('chartPeriodFilter');
+  if (periodSelect) {
+    periodSelect.innerHTML = '';
+    
+    // Obtener períodos únicos ordenados cronológicamente descendente
+    const distinctDates = [...new Set(workerEvals.map(ev => ev.fecha))]
+      .filter(Boolean)
+      .sort((a, b) => new Date(b) - new Date(a));
+      
+    const optAll = document.createElement('option');
+    optAll.value = 'ALL';
+    optAll.textContent = 'Todos los períodos (Promedio General)';
+    periodSelect.appendChild(optAll);
+    
+    distinctDates.forEach(dateStr => {
+      const opt = document.createElement('option');
+      opt.value = dateStr;
+      opt.textContent = `Período: ${new Date(dateStr + 'T00:00:00').toLocaleDateString()}`;
+      periodSelect.appendChild(opt);
+    });
+    
+    periodSelect.value = 'ALL';
+    periodSelect.disabled = distinctDates.length === 0;
+  }
+  
+  // Renderizar gráfico y resultado general con todos los períodos
+  renderWorkerChartData(workerId, 'ALL');
+}
+
+export function filterWorkerChartByPeriod() {
+  if (!currentChartWorkerId) return;
+  const select = document.getElementById('chartPeriodFilter');
+  const selectedPeriod = select ? select.value : 'ALL';
+  renderWorkerChartData(currentChartWorkerId, selectedPeriod);
+}
+
+export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
+  // Buscar todas las filas de evaluaciones en caché para este trabajador
+  const allWorkerEvals = state.evaluationsCache.filter(ev => {
+    try {
+      const parsed = safeParseJSON(ev.evaluacion);
+      return parsed && parsed.trabajador_id === workerId;
+    } catch(e) {
+      return false;
+    }
+  });
+  
+  // Filtrar según el período seleccionado
+  const workerEvals = selectedPeriod === 'ALL'
+    ? allWorkerEvals
+    : allWorkerEvals.filter(ev => ev.fecha === selectedPeriod);
   
   const canvas = document.getElementById('workerChartCanvas');
   const noDataMsg = document.getElementById('chartNoDataMsg');
@@ -189,7 +247,9 @@ export async function showWorkerChartModal(workerId) {
     noDataMsg.style.display = 'block';
     percentSpan.textContent = '0%';
     scoreLabel.textContent = 'Sin Evaluaciones';
-    dateLabel.textContent = 'Evaluado el: -';
+    dateLabel.textContent = selectedPeriod === 'ALL'
+      ? 'Evaluado el: -'
+      : `Sin registros para el período: ${new Date(selectedPeriod + 'T00:00:00').toLocaleDateString()}`;
     
     const circleContainer = percentSpan.parentElement;
     if (circleContainer) {
@@ -225,7 +285,7 @@ export async function showWorkerChartModal(workerId) {
       }
       
       const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
-      if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+      if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor) && valor >= 0) {
         const claseId = ev.clase_id;
         const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
         
@@ -292,7 +352,15 @@ export async function showWorkerChartModal(workerId) {
   else if (porcentajeGeneral > 0) clasificacion = 'Deficiente (Bajo desempeño)';
   
   scoreLabel.textContent = clasificacion;
-  dateLabel.textContent = `Evaluado el: ${ultimaFecha ? new Date(ultimaFecha).toLocaleDateString() : 'N/A'}`;
+  
+  if (selectedPeriod === 'ALL') {
+    const distinctDates = [...new Set(workerEvals.map(ev => ev.fecha))].filter(Boolean);
+    dateLabel.textContent = distinctDates.length > 1
+      ? `Promedio de ${distinctDates.length} períodos evaluados`
+      : `Evaluado el: ${distinctDates[0] ? new Date(distinctDates[0] + 'T00:00:00').toLocaleDateString() : 'N/A'}`;
+  } else {
+    dateLabel.textContent = `Evaluado el: ${new Date(selectedPeriod + 'T00:00:00').toLocaleDateString()}`;
+  }
   
   // Preparar datos para el gráfico
   const labels = [];
@@ -325,13 +393,17 @@ export async function showWorkerChartModal(workerId) {
   const textColor = isDarkMode ? '#e2e8f0' : '#334155';
   const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
   
+  const datasetLabel = selectedPeriod === 'ALL'
+    ? 'Promedio General de Competencias'
+    : `Evaluación del ${new Date(selectedPeriod + 'T00:00:00').toLocaleDateString()}`;
+
   // Utiliza el constructor global de Chart
   state.currentChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'radar',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Promedio por Competencia',
+        label: datasetLabel,
         data: scores,
         backgroundColor: 'rgba(21, 128, 61, 0.25)',
         borderColor: 'rgba(21, 128, 61, 1)',
@@ -577,7 +649,7 @@ export function renderReporteSubordinados() {
         if (!parsed) return;
         const valor = parseFloat(parsed.valor);
         const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
-        if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+        if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor) && valor >= 0) {
           const claseId = ev.clase_id;
           const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
           
@@ -743,7 +815,7 @@ export function renderReporteSubordinados() {
                   if (!parsed) return;
                   const valor = parseFloat(parsed.valor);
                   const aspecto = state.aspectsCache.find(a => a.id === row.item_evaluacion_id);
-                  if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+                  if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor) && valor >= 0) {
                     const claseId = row.clase_id;
                     const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
                     
@@ -810,16 +882,28 @@ export function renderReporteSubordinados() {
                           try {
                             const parsed = safeParseJSON(row.evaluacion);
                             if (parsed) {
-                              ratingVal = parsed.valor;
-                              if (aspect && aspect.tipo === 'si/no') {
-                                ratingVal = ratingVal.toUpperCase();
+                              const val = parsed.valor;
+                              if (val === '-1' || val === -1 || val === '' || val === null || val === undefined) {
+                                ratingVal = '<span style="color: var(--muted-color); font-style: italic;">Sin respuesta</span>';
+                                pctLabel = 'N/A';
+                              } else if (aspect && aspect.tipo === 'si/no') {
+                                ratingVal = String(val).toUpperCase();
                               } else if (aspect && aspect.tipo === 'rango1,4') {
-                                const valNum = parseFloat(ratingVal);
+                                const valNum = parseFloat(val);
+                                const escalaMap = {
+                                  1: '1. Nunca (0 Pts)',
+                                  2: '2. Casi Nunca (1 Pts)',
+                                  3: '3. Frecuentemente (2 Pts)',
+                                  4: '4. Siempre (3 Pts)'
+                                };
+                                ratingVal = escalaMap[valNum] || val;
                                 const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
-                                if (!isNaN(valNum)) {
+                                if (!isNaN(valNum) && valNum >= 0) {
                                   const pct = (valNum / 4) * weight;
                                   pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
                                 }
+                              } else {
+                                ratingVal = val;
                               }
                             }
                           } catch(e) {}
@@ -995,7 +1079,7 @@ export function renderReporteSubordinados() {
         if (!parsed) return;
         const valor = parseFloat(parsed.valor);
         const aspecto = state.aspectsCache.find(a => a.id === ev.item_evaluacion_id);
-        if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor)) {
+        if (aspecto && aspecto.tipo === 'rango1,4' && !isNaN(valor) && valor >= 0) {
           const claseId = ev.clase_id;
           const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
           

@@ -55,10 +55,33 @@ export async function loadCaches() {
       a.clase = parentClass ? { titulo: parentClass.titulo } : null;
     });
     
-    // 4. Evaluaciones
-    const evalsRes = await state.supabaseClient.from('evaluacion').select('*');
-    if (evalsRes.error) throw evalsRes.error;
-    state.evaluationsCache = evalsRes.data || [];
+    // 4. Evaluaciones (cargar todas las páginas de 1000 registros para tener el histórico completo)
+    let allEvals = [];
+    let evalsFrom = 0;
+    const step = 1000;
+    let hasMoreEvals = true;
+
+    while (hasMoreEvals) {
+      const { data, error } = await state.supabaseClient
+        .from('evaluacion')
+        .select('*')
+        .order('id', { ascending: true })
+        .range(evalsFrom, evalsFrom + step - 1);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allEvals.push(...data);
+        if (data.length < step) {
+          hasMoreEvals = false;
+        } else {
+          evalsFrom += step;
+        }
+      } else {
+        hasMoreEvals = false;
+      }
+    }
+    state.evaluationsCache = allEvals;
     
     // 5. Fechas de Evaluación
     const datesRes = await state.supabaseClient.from('fecha_eval').select('*').order('fecha', { ascending: false });
