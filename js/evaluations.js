@@ -531,6 +531,76 @@ export function disableFieldsInRow(rowElement, disable) {
   });
 }
 
+// ================= CÁLCULO DE PUNTUACIONES Y PONDERACIÓN =================
+
+/**
+ * Determina si un aspecto de evaluación está marcado como reverso
+ * @param {Object} aspecto
+ * @returns {boolean}
+ */
+export function isAspectoReverse(aspecto) {
+  if (!aspecto) return false;
+  return Boolean(
+    aspecto.reverse === true ||
+    aspecto.revverse === true ||
+    aspecto.reverse === 'true' ||
+    aspecto.revverse === 'true' ||
+    aspecto.reverse === 1 ||
+    aspecto.revverse === 1
+  );
+}
+
+/**
+ * Calcula el factor multiplicador según la opción seleccionada y si el item es reverso
+ * - Si NO es reverso:
+ *     opción 1 -> Multiplicador 0
+ *     opción 2 -> Multiplicador 2
+ *     opción 3 -> Multiplicador 3
+ *     opción 4 -> Multiplicador 4
+ * - Si ES reverso (campo reverse en true):
+ *     opción 1 -> Multiplicador 4
+ *     opción 2 -> Multiplicador 3
+ *     opción 3 -> Multiplicador 2
+ *     opción 4 -> Multiplicador 0
+ * 
+ * @param {number|string} valor - Opción elegida (1, 2, 3, 4)
+ * @param {boolean} isReverse - Si la pregunta está marcada como reversa
+ * @returns {number} Multiplicador (0, 2, 3 o 4)
+ */
+export function getItemMultiplier(valor, isReverse = false) {
+  const valNum = parseInt(valor, 10);
+  if (isNaN(valNum) || valNum < 1 || valNum > 4) return 0;
+  
+  if (!isReverse) {
+    if (valNum === 1) return 0;
+    return valNum; // 2 -> 2, 3 -> 3, 4 -> 4
+  } else {
+    if (valNum === 4) return 0;
+    if (valNum === 3) return 2;
+    if (valNum === 2) return 3;
+    if (valNum === 1) return 4;
+    return 0;
+  }
+}
+
+/**
+ * Calcula los puntos de un item según la ponderación, la opción seleccionada y la regla de reversión
+ * Fórmula: (ponderacion / 4) * multiplicador
+ * 
+ * @param {Object} aspecto - Aspecto de evaluación (item_evaluacion)
+ * @param {number|string} valor - Opción elegida (1, 2, 3, 4)
+ * @returns {number} Puntos calculados
+ */
+export function calculateItemScore(aspecto, valor) {
+  if (!aspecto) return 0;
+  const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
+  if (isNaN(weight) || weight <= 0) return 0;
+  
+  const isRev = isAspectoReverse(aspecto);
+  const multiplicador = getItemMultiplier(valor, isRev);
+  return (weight / 4) * multiplicador;
+}
+
 // Guardar/Actualizar Evaluación
 export async function saveEvaluation(event) {
   if (event) event.preventDefault();
@@ -677,15 +747,26 @@ export async function saveEvaluation(event) {
     // Determinar si ya existía una fila para este aspecto
     const existingRow = existingMap.get(aspectoId);
     
+    const evaluacionData = {
+      trabajador_id: trabajadorId,
+      valor: answerValue
+    };
+
+    // Calcular y adjuntar los puntos para respuestas de escala 1-4
+    if (tipo === 'rango1,4' && answerValue !== '-1') {
+      const aspecto = state.aspectsCache.find(a => a.id === aspectoId);
+      if (aspecto) {
+        const puntosCalculados = calculateItemScore(aspecto, answerValue);
+        evaluacionData.puntos = Number(puntosCalculados.toFixed(2));
+      }
+    }
+
     const payload = {
       clase_id: claseId,
       item_evaluacion_id: aspectoId,
       fecha: fecha,
       estado: false, // Por defecto abierta al guardar
-      evaluacion: JSON.stringify({
-        trabajador_id: trabajadorId,
-        valor: answerValue
-      })
+      evaluacion: JSON.stringify(evaluacionData)
     };
     
     if (existingRow && existingRow.id) {

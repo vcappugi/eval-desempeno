@@ -47,7 +47,7 @@ export async function switchView(viewName) {
     hideOtherViews('viewReporteSubordinados');
     initReporteSubordinadosFilters();
     renderReporteSubordinados();
-  } else if (viewName === 'admin' && state.currentUser.rol === 'admin') {
+  } else if (viewName === 'admin' && (state.currentUser?.rol || '').toLowerCase() === 'admin') {
     await ensureTemplateLoaded('viewAdmin', 'views/admin.html', 'viewsContainer');
     document.getElementById('viewAdmin').style.display = 'block';
     hideOtherViews('viewAdmin');

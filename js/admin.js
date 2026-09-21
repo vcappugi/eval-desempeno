@@ -310,19 +310,71 @@ export async function deleteTrabajador(id) {
 
 // ================= CRUD: COMPETENCIAS (CLASE) =================
 
+export function handleCompetenciaFilterTipoChange(tipoValue) {
+  state.competenciasFilterTipo = (tipoValue || '').trim();
+  renderCompetenciasCrud();
+}
+
+export function resetCompetenciasFilter() {
+  state.competenciasFilterTipo = '';
+  const tipoSelect = document.getElementById('filterCompetenciaTipo');
+  if (tipoSelect) tipoSelect.value = '';
+  renderCompetenciasCrud();
+}
+
 export function renderCompetenciasCrud() {
   const container = document.getElementById('competenciasCardsContainer');
   if (!container) return;
   
+  // Sincronizar select si existe
+  const tipoSelect = document.getElementById('filterCompetenciaTipo');
+  if (tipoSelect && tipoSelect.value !== (state.competenciasFilterTipo || '')) {
+    tipoSelect.value = state.competenciasFilterTipo || '';
+  }
+
   container.innerHTML = '';
   
   if (state.classesCache.length === 0) {
     container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem;">No hay competencias registradas.</div>';
+    const badge = document.getElementById('competenciasCountBadge');
+    if (badge) badge.textContent = '0 competencias';
+    return;
+  }
+  
+  // Filtrar por tipo si está seleccionado
+  let filtered = state.classesCache;
+  if (state.competenciasFilterTipo) {
+    filtered = filtered.filter(c => (c.tipo || '').toUpperCase().trim() === state.competenciasFilterTipo.toUpperCase().trim());
+  }
+  
+  // Actualizar contador
+  const countBadge = document.getElementById('competenciasCountBadge');
+  if (countBadge) {
+    if (state.competenciasFilterTipo) {
+      countBadge.textContent = `Mostrando ${filtered.length} de ${state.classesCache.length} competencias (${state.competenciasFilterTipo})`;
+    } else {
+      countBadge.textContent = `Total: ${filtered.length} competencias`;
+    }
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 2.5rem 1rem; background: var(--card-background-color); border-radius: 8px; border: 1px dashed var(--border-color);">
+        <i class="fa-solid fa-filter-circle-xmark text-muted" style="font-size: 2.5rem; margin-bottom: 1rem; display: block;"></i>
+        <h4 style="margin-bottom: 0.5rem;">No se encontraron competencias</h4>
+        <p style="color: var(--muted-color); margin-bottom: 1rem; font-size: 0.9rem;">
+          No hay competencias que coincidan con el tipo seleccionado (<strong>${state.competenciasFilterTipo}</strong>).
+        </p>
+        <button class="outline secondary" onclick="resetCompetenciasFilter()" style="display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 auto;">
+          <i class="fa-solid fa-rotate-left"></i> Restablecer Filtro
+        </button>
+      </div>
+    `;
     return;
   }
   
   let html = '';
-  state.classesCache.forEach(c => {
+  filtered.forEach(c => {
     const tipoBadge = c.tipo === 'GERENCIAL' ? 
       '<span class="badge" style="background-color: #1e3a8a; color: #ffffff; font-weight: 600; font-size: 0.75rem;">GERENCIAL</span>' :
       '<span class="badge" style="background-color: var(--primary); color: #ffffff; font-weight: 600; font-size: 0.75rem;">ADMINISTRATIVO</span>';
@@ -592,12 +644,16 @@ export function renderAspectosCrud() {
         '<span class="badge" style="font-size: 0.65rem; background-color: rgba(55, 65, 81, 0.1); color: #374151; border: 1px solid rgba(55,65,81,0.25); vertical-align: middle; margin-left: 0.35rem;">ADMINISTRATIVO</span>'
     ) : '';
     
+    const isRev = Boolean(a.reverse || a.revverse);
+    const reverseBadge = isRev ? 
+      '<span class="badge" style="background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 600; margin-left: 0.35rem;" title="Escala Inversa (Reverso: 4=0 pts, 1=100%)"><i class="fa-solid fa-arrow-rotate-left"></i> REVERSO</span>' : '';
+
     html += `
       <tr>
         <td><mark style="background-color: var(--primary-focus); color: var(--primary); font-weight: 700; border-radius: 4px; padding: 0.1rem 0.4rem;">${a.orden}</mark></td>
         <td><strong>${claseTitulo}</strong>${claseTipoBadge}</td>
         <td style="max-width: 400px; text-align: justify;">${a.descripcion}</td>
-        <td>${tipoBadge}</td>
+        <td>${tipoBadge}${reverseBadge}</td>
         <td><strong>${ponderacionText}</strong></td>
         <td>${estadoBadge}</td>
         <td style="text-align: right; white-space: nowrap;">
@@ -628,6 +684,8 @@ export async function openAspectoModal() {
   document.getElementById('aspPonderacion').value = '';
   const activoCheckbox = document.getElementById('aspActivo');
   if (activoCheckbox) activoCheckbox.checked = true;
+  const reverseCheckbox = document.getElementById('aspReverse');
+  if (reverseCheckbox) reverseCheckbox.checked = false;
   document.getElementById('aspectoModalTitle').textContent = 'Agregar Aspecto a Evaluar';
   
   // Si el usuario tiene una competencia seleccionada en los filtros, preseleccionarla
@@ -652,6 +710,8 @@ export async function editAspecto(id) {
   document.getElementById('aspPonderacion').value = a.ponderacion !== null && a.ponderacion !== undefined ? a.ponderacion : '';
   const activoCheckbox = document.getElementById('aspActivo');
   if (activoCheckbox) activoCheckbox.checked = a.activo !== false;
+  const reverseCheckbox = document.getElementById('aspReverse');
+  if (reverseCheckbox) reverseCheckbox.checked = Boolean(a.reverse || a.revverse);
   
   document.getElementById('aspectoModalTitle').textContent = 'Modificar Aspecto a Evaluar';
 }
@@ -666,6 +726,8 @@ export async function saveAspecto(event) {
   const ponderacion = parseFloat(document.getElementById('aspPonderacion').value) || 0;
   const activoCheckbox = document.getElementById('aspActivo');
   const activo = activoCheckbox ? activoCheckbox.checked : true;
+  const reverseCheckbox = document.getElementById('aspReverse');
+  const revverse = reverseCheckbox ? reverseCheckbox.checked : false;
   
   if (ponderacion < 0 || ponderacion > 100) {
     showToast("La ponderación debe ser un valor porcentual entre 0% y 100%.", "error");
@@ -683,7 +745,7 @@ export async function saveAspecto(event) {
     return;
   }
   
-  const payload = { clase_id, descripcion, tipo, orden, ponderacion, activo };
+  const payload = { clase_id, descripcion, tipo, orden, ponderacion, activo, revverse };
   
   try {
     if (id) {

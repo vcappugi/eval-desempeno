@@ -2,6 +2,7 @@
 
 import { state } from './state.js';
 import { safeParseJSON, openModal } from './utils.js';
+import { isAspectoReverse, getItemMultiplier, calculateItemScore } from './evaluations.js';
 
 export function renderIndicadoresGenerales() {
   // 1. Total Trabajadores
@@ -57,6 +58,9 @@ export function renderIndicadoresGenerales() {
           const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
           const claseId = ev.clase_id;
           
+          const isRev = isAspectoReverse(aspecto);
+          const effectiveVal = getItemMultiplier(valNum, isRev);
+          
           if (claseId) {
             if (!compWeightedSuma[claseId]) {
               compWeightedSuma[claseId] = 0;
@@ -66,17 +70,17 @@ export function renderIndicadoresGenerales() {
             }
             
             if (weight > 0) {
-              compWeightedSuma[claseId] += valNum * weight;
+              compWeightedSuma[claseId] += effectiveVal * weight;
               compWeightSum[claseId] += weight;
               
-              totalWeightedSuma += valNum * weight;
+              totalWeightedSuma += effectiveVal * weight;
               totalWeightSum += weight;
             }
             
-            compUnweightedSuma[claseId] += valNum;
+            compUnweightedSuma[claseId] += effectiveVal;
             compCuenta[claseId]++;
             
-            totalUnweightedSuma += valNum;
+            totalUnweightedSuma += effectiveVal;
             totalCuenta++;
           }
         }
@@ -296,18 +300,21 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
           compCuenta[claseId] = 0;
         }
         
+        const isRev = isAspectoReverse(aspecto);
+        const effectiveVal = getItemMultiplier(valor, isRev);
+        
         if (weight > 0) {
-          compWeightedSuma[claseId] += valor * weight;
+          compWeightedSuma[claseId] += effectiveVal * weight;
           compWeightSum[claseId] += weight;
           
-          totalWeightedSuma += valor * weight;
+          totalWeightedSuma += effectiveVal * weight;
           totalWeightSum += weight;
         }
         
-        compUnweightedSuma[claseId] += valor;
+        compUnweightedSuma[claseId] += effectiveVal;
         compCuenta[claseId]++;
         
-        totalUnweightedSuma += valor;
+        totalUnweightedSuma += effectiveVal;
         totalCuenta++;
       }
     } catch(e) {}
@@ -665,12 +672,15 @@ export function renderReporteSubordinados() {
             subCompCuenta[claseId] = 0;
           }
           
+          const isRev = isAspectoReverse(aspecto);
+          const effectiveVal = getItemMultiplier(valor, isRev);
+          
           if (weight > 0) {
-            subCompWeightedSuma[claseId] += valor * weight;
+            subCompWeightedSuma[claseId] += effectiveVal * weight;
             subCompWeightSum[claseId] += weight;
           }
           
-          subCompUnweightedSuma[claseId] += valor;
+          subCompUnweightedSuma[claseId] += effectiveVal;
           subCompCuenta[claseId]++;
         }
       } catch(e) {}
@@ -831,12 +841,15 @@ export function renderReporteSubordinados() {
                       groupCompCuenta[claseId] = 0;
                     }
                     
+                    const isRev = isAspectoReverse(aspecto);
+                    const effectiveVal = getItemMultiplier(valor, isRev);
+                    
                     if (weight > 0) {
-                      groupCompWeightedSuma[claseId] += valor * weight;
+                      groupCompWeightedSuma[claseId] += effectiveVal * weight;
                       groupCompWeightSum[claseId] += weight;
                     }
                     
-                    groupCompUnweightedSuma[claseId] += valor;
+                    groupCompUnweightedSuma[claseId] += effectiveVal;
                     groupCompCuenta[claseId]++;
                   }
                 } catch(e) {}
@@ -904,7 +917,7 @@ export function renderReporteSubordinados() {
                                 ratingVal = escalaMap[valNum] || val;
                                 const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
                                 if (!isNaN(valNum) && valNum >= 0) {
-                                  const puntos = (weight / 4) * valNum;
+                                  const puntos = parsed.puntos !== undefined ? Number(parsed.puntos) : calculateItemScore(aspect, valNum);
                                   pctLabel = `${puntos.toFixed(2)} pts (de ${weight}%)`;
                                 }
                               } else {

@@ -11,6 +11,9 @@ export const state = {
   evalsPerPage: 20,
   evalsSearchQuery: '',
   
+  // Filtros de Competencias
+  competenciasFilterTipo: '',
+  
   // Filtros de Aspectos
   aspectsFilterTipo: '',
   aspectsFilterClaseId: '',

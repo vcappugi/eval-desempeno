@@ -5,7 +5,7 @@ import { initSupabase } from './supabase.js';
 import { closeModal } from './utils.js';
 import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js';
 import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage } from './evaluations.js';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, isAspectoReverse, getItemMultiplier, calculateItemScore } from './evaluations.js';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -17,6 +17,8 @@ import {
   deleteCompetencia,
   openCompetenciaModal,
   saveCompetencia,
+  handleCompetenciaFilterTipoChange,
+  resetCompetenciasFilter,
   editAspecto,
   deleteAspecto,
   openAspectoModal,
@@ -35,7 +37,7 @@ import {
 import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange, filterWorkerChartByPeriod } from './reports.js';
 
 // Inicialización de la aplicación al cargar el DOM
-document.addEventListener("DOMContentLoaded", () => {
+function initApp() {
   // Inicializar cliente de Supabase
   initSupabase();
 
@@ -47,7 +49,13 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Registrar eventos estáticos globales en el DOM cargado
   document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 // Vincular funciones a Window para soportar invocaciones en atributos inline del HTML
 window.toggleTheme = toggleTheme;
@@ -68,6 +76,9 @@ window.checkEvaluationDateUnique = checkEvaluationDateUnique;
 window.saveEvaluation = saveEvaluation;
 window.handleEvalWorkerSearch = handleEvalWorkerSearch;
 window.changeEvalsPage = changeEvalsPage;
+window.isAspectoReverse = isAspectoReverse;
+window.getItemMultiplier = getItemMultiplier;
+window.calculateItemScore = calculateItemScore;
 
 // CRUD Trabajadores
 window.editTrabajador = editTrabajador;
@@ -83,6 +94,8 @@ window.editCompetencia = editCompetencia;
 window.deleteCompetencia = deleteCompetencia;
 window.openCompetenciaModal = openCompetenciaModal;
 window.saveCompetencia = saveCompetencia;
+window.handleCompetenciaFilterTipoChange = handleCompetenciaFilterTipoChange;
+window.resetCompetenciasFilter = resetCompetenciasFilter;
 
 // CRUD Aspectos
 window.editAspecto = editAspecto;
