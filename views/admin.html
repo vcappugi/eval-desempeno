@@ -97,6 +97,39 @@
         </button>
       </div>
       
+      <!-- FILTROS DE ASPECTOS (POR TIPO Y POR COMPETENCIA) -->
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1.25rem; background: var(--card-background-color); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="flex: 1 1 200px; min-width: 180px;">
+          <label for="filterAspectoTipo" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+            <i class="fa-solid fa-layer-group text-primary"></i> Tipo de Competencia
+          </label>
+          <select id="filterAspectoTipo" onchange="handleAspectosFilterTipoChange(this.value)" style="margin-bottom: 0;">
+            <option value="">Todos los Tipos</option>
+            <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+            <option value="GERENCIAL">GERENCIAL</option>
+          </select>
+        </div>
+
+        <div style="flex: 2 1 260px; min-width: 220px;">
+          <label for="filterAspectoClase" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+            <i class="fa-solid fa-award text-primary"></i> Competencia (Clase)
+          </label>
+          <select id="filterAspectoClase" onchange="handleAspectosFilterClaseChange(this.value)" style="margin-bottom: 0;">
+            <option value="">Todas las Competencias</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center; align-self: flex-end; padding-bottom: 0.1rem;">
+          <button class="outline secondary" onclick="resetAspectosFilters()" style="margin-bottom: 0; padding: 0.5rem 0.85rem; white-space: nowrap;" title="Restablecer Filtros">
+            <i class="fa-solid fa-rotate-left"></i> Limpiar
+          </button>
+          <span id="aspectosCountBadge" class="badge" style="background-color: var(--primary-focus); color: var(--primary); font-size: 0.8rem; border: 1px solid var(--primary); white-space: nowrap;">
+            0 aspectos
+          </span>
+        </div>
+      </div>
+      
       <div class="table-wrapper">
         <table>
           <thead>

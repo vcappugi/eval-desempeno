@@ -447,20 +447,135 @@ export async function deleteCompetencia(id) {
 
 // ================= CRUD: ASPECTOS (ITEM_EVALUACION) =================
 
+export function populateAspectosFilterClases() {
+  const select = document.getElementById('filterAspectoClase');
+  if (!select) return;
+
+  const currentVal = state.aspectsFilterClaseId ? String(state.aspectsFilterClaseId) : '';
+  let availableClasses = state.classesCache;
+
+  if (state.aspectsFilterTipo) {
+    availableClasses = availableClasses.filter(c => (c.tipo || '').toUpperCase().trim() === state.aspectsFilterTipo.toUpperCase().trim());
+  }
+
+  let optionsHTML = '<option value="">Todas las Competencias</option>';
+  availableClasses.forEach(c => {
+    const tipoTag = !state.aspectsFilterTipo && c.tipo ? ` [${c.tipo}]` : '';
+    optionsHTML += `<option value="${c.id}">${c.titulo}${tipoTag}</option>`;
+  });
+  select.innerHTML = optionsHTML;
+
+  // Restaurar valor si sigue disponible en las opciones
+  if (currentVal && availableClasses.some(c => String(c.id) === currentVal)) {
+    select.value = currentVal;
+  } else {
+    state.aspectsFilterClaseId = '';
+    select.value = '';
+  }
+}
+
+export function handleAspectosFilterTipoChange(tipoValue) {
+  state.aspectsFilterTipo = (tipoValue || '').trim();
+  populateAspectosFilterClases();
+  renderAspectosCrud();
+}
+
+export function handleAspectosFilterClaseChange(claseIdValue) {
+  state.aspectsFilterClaseId = claseIdValue ? parseInt(claseIdValue) : '';
+  
+  // Si se seleccionó una competencia específica y el filtro de tipo está vacío, sincronizar automáticamente
+  if (state.aspectsFilterClaseId) {
+    const parentClass = state.classesCache.find(c => c.id === state.aspectsFilterClaseId);
+    if (parentClass && parentClass.tipo && !state.aspectsFilterTipo) {
+      state.aspectsFilterTipo = parentClass.tipo;
+      const tipoSelect = document.getElementById('filterAspectoTipo');
+      if (tipoSelect) tipoSelect.value = parentClass.tipo;
+      populateAspectosFilterClases();
+    }
+  }
+  
+  renderAspectosCrud();
+}
+
+export function resetAspectosFilters() {
+  state.aspectsFilterTipo = '';
+  state.aspectsFilterClaseId = '';
+  
+  const tipoSelect = document.getElementById('filterAspectoTipo');
+  if (tipoSelect) tipoSelect.value = '';
+  
+  populateAspectosFilterClases();
+  renderAspectosCrud();
+}
+
 export function renderAspectosCrud() {
   const tbody = document.getElementById('aspectosTableBody');
   if (!tbody) return;
   
+  // Sincronizar select de competencias si aún no está inicializado
+  const selectClase = document.getElementById('filterAspectoClase');
+  if (selectClase && (!selectClase.options || selectClase.options.length <= 1) && state.classesCache.length > 0) {
+    populateAspectosFilterClases();
+  }
+  
+  // Asegurar consistencia de valores en el DOM con el estado
+  const tipoSelect = document.getElementById('filterAspectoTipo');
+  if (tipoSelect && tipoSelect.value !== state.aspectsFilterTipo) {
+    tipoSelect.value = state.aspectsFilterTipo;
+  }
+  if (selectClase && state.aspectsFilterClaseId && selectClase.value !== String(state.aspectsFilterClaseId)) {
+    selectClase.value = String(state.aspectsFilterClaseId);
+  }
+
   tbody.innerHTML = '';
   
   if (state.aspectsCache.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay aspectos de evaluación registrados.</td></tr>';
+    const badge = document.getElementById('aspectosCountBadge');
+    if (badge) badge.textContent = '0 aspectos';
+    return;
+  }
+  
+  // Aplicar filtros
+  let filtered = state.aspectsCache;
+  
+  if (state.aspectsFilterTipo) {
+    filtered = filtered.filter(a => {
+      const parentClass = state.classesCache.find(c => c.id === a.clase_id);
+      const cTipo = (parentClass?.tipo || a.clase?.tipo || '').toUpperCase().trim();
+      return cTipo === state.aspectsFilterTipo.toUpperCase().trim();
+    });
+  }
+  
+  if (state.aspectsFilterClaseId) {
+    filtered = filtered.filter(a => a.clase_id === state.aspectsFilterClaseId);
+  }
+  
+  // Actualizar contador
+  const countBadge = document.getElementById('aspectosCountBadge');
+  if (countBadge) {
+    countBadge.textContent = `Mostrando ${filtered.length} de ${state.aspectsCache.length} aspectos`;
+  }
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--muted-color);">
+          <i class="fa-solid fa-filter-circle-xmark" style="font-size: 1.75rem; margin-bottom: 0.5rem; display: block; color: var(--primary);"></i>
+          <strong>No se encontraron aspectos con los filtros seleccionados.</strong>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;">Pruebe cambiando o limpiando los filtros de competencia o tipo.</p>
+        </td>
+      </tr>
+    `;
     return;
   }
   
   let html = '';
-  state.aspectsCache.forEach(a => {
-    const claseTitulo = a.clase ? a.clase.titulo : `<span class="text-error">Desasociada (ID: ${a.clase_id})</span>`;
+  filtered.forEach(a => {
+    const parentClass = state.classesCache.find(c => c.id === a.clase_id);
+    const claseTitulo = parentClass?.titulo || a.clase?.titulo || `<span class="text-error">Desasociada (ID: ${a.clase_id})</span>`;
+    const claseTipo = (parentClass?.tipo || a.clase?.tipo || '').toUpperCase().trim();
+    
     let tipoBadge = '';
     if (a.tipo === 'rango1,4') tipoBadge = '<span class="badge">Rango 1-4</span>';
     else if (a.tipo === 'si/no') tipoBadge = '<span class="badge">Sí / No</span>';
@@ -470,20 +585,26 @@ export function renderAspectosCrud() {
     const estadoBadge = a.activo !== false ? 
       '<span class="badge" style="background-color: var(--primary); color: #ffffff;">Activo</span>' : 
       '<span class="badge secondary" style="opacity: 0.7;">Inactivo</span>';
+      
+    const claseTipoBadge = claseTipo ? (
+      claseTipo === 'GERENCIAL' ? 
+        '<span class="badge" style="font-size: 0.65rem; background-color: rgba(30, 64, 175, 0.1); color: #1e40af; border: 1px solid rgba(30,64,175,0.25); vertical-align: middle; margin-left: 0.35rem;">GERENCIAL</span>' :
+        '<span class="badge" style="font-size: 0.65rem; background-color: rgba(55, 65, 81, 0.1); color: #374151; border: 1px solid rgba(55,65,81,0.25); vertical-align: middle; margin-left: 0.35rem;">ADMINISTRATIVO</span>'
+    ) : '';
     
     html += `
       <tr>
         <td><mark style="background-color: var(--primary-focus); color: var(--primary); font-weight: 700; border-radius: 4px; padding: 0.1rem 0.4rem;">${a.orden}</mark></td>
-        <td><strong>${claseTitulo}</strong></td>
+        <td><strong>${claseTitulo}</strong>${claseTipoBadge}</td>
         <td style="max-width: 400px; text-align: justify;">${a.descripcion}</td>
         <td>${tipoBadge}</td>
         <td><strong>${ponderacionText}</strong></td>
         <td>${estadoBadge}</td>
         <td style="text-align: right; white-space: nowrap;">
-          <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editAspecto(${a.id})">
+          <button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-right: 0.25rem; margin-bottom: 0;" onclick="editAspecto(${a.id})" title="Modificar">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button class="outline contrast" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="deleteAspecto(${a.id})">
+          <button class="outline contrast" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="deleteAspecto(${a.id})" title="Eliminar">
             <i class="fa-solid fa-trash"></i>
           </button>
         </td>
@@ -508,6 +629,12 @@ export async function openAspectoModal() {
   const activoCheckbox = document.getElementById('aspActivo');
   if (activoCheckbox) activoCheckbox.checked = true;
   document.getElementById('aspectoModalTitle').textContent = 'Agregar Aspecto a Evaluar';
+  
+  // Si el usuario tiene una competencia seleccionada en los filtros, preseleccionarla
+  if (state.aspectsFilterClaseId) {
+    const aspClaseSelect = document.getElementById('aspClase');
+    if (aspClaseSelect) aspClaseSelect.value = state.aspectsFilterClaseId;
+  }
 }
 
 export async function editAspecto(id) {
@@ -740,7 +867,8 @@ export function populateCompetenciasSelects() {
   const val = select.value;
   select.innerHTML = '<option value="">Seleccione una competencia...</option>';
   state.classesCache.forEach(c => {
-    select.innerHTML += `<option value="${c.id}">${c.titulo}</option>`;
+    const tipoTag = c.tipo ? ` [${c.tipo}]` : '';
+    select.innerHTML += `<option value="${c.id}">${c.titulo}${tipoTag}</option>`;
   });
   select.value = val;
 }

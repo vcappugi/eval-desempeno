@@ -11,6 +11,10 @@ export const state = {
   evalsPerPage: 20,
   evalsSearchQuery: '',
   
+  // Filtros de Aspectos
+  aspectsFilterTipo: '',
+  aspectsFilterClaseId: '',
+  
   // Cachés de Datos de la Base de Datos
   workersCache: [],
   classesCache: [],

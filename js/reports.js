@@ -353,6 +353,11 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
   
   scoreLabel.textContent = clasificacion;
   
+  const pointsLabel = document.getElementById('chartScorePoints');
+  if (pointsLabel) {
+    pointsLabel.textContent = promedioGeneral > 0 ? `${promedioGeneral.toFixed(2)} / 4.0 Pts` : '-';
+  }
+  
   if (selectedPeriod === 'ALL') {
     const distinctDates = [...new Set(workerEvals.map(ev => ev.fecha))].filter(Boolean);
     dateLabel.textContent = distinctDates.length > 1
@@ -865,8 +870,8 @@ export function renderReporteSubordinados() {
                         <tr>
                           <th style="width: 25%;">Competencia</th>
                           <th style="width: 45%;">Aspecto Evaluado</th>
-                          <th style="text-align: right; width: 15%;">Respuesta / Valor</th>
-                          <th style="text-align: right; width: 15%;">Ponderación</th>
+                          <th style="text-align: right; width: 15%;">Opción Evaluada</th>
+                          <th style="text-align: right; width: 15%;">Resultado / Puntos</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -891,16 +896,16 @@ export function renderReporteSubordinados() {
                               } else if (aspect && aspect.tipo === 'rango1,4') {
                                 const valNum = parseFloat(val);
                                 const escalaMap = {
-                                  1: '1. Nunca (0 Pts)',
-                                  2: '2. Casi Nunca (1 Pts)',
-                                  3: '3. Frecuentemente (2 Pts)',
-                                  4: '4. Siempre (3 Pts)'
+                                  1: '1. Nunca',
+                                  2: '2. Casi Nunca',
+                                  3: '3. Frecuentemente',
+                                  4: '4. Siempre'
                                 };
                                 ratingVal = escalaMap[valNum] || val;
                                 const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
                                 if (!isNaN(valNum) && valNum >= 0) {
-                                  const pct = (valNum / 4) * weight;
-                                  pctLabel = `${pct.toFixed(1)}% (de ${weight}%)`;
+                                  const puntos = (weight / 4) * valNum;
+                                  pctLabel = `${puntos.toFixed(2)} pts (de ${weight}%)`;
                                 }
                               } else {
                                 ratingVal = val;
@@ -919,7 +924,7 @@ export function renderReporteSubordinados() {
                         }).join('')}
                         <tr style="background-color: rgba(21, 128, 61, 0.05); font-weight: bold; border-top: 2px solid var(--border-color);">
                           <td colspan="2" style="font-size: 0.85rem; color: var(--primary);"><strong>Promedio Final de la Evaluación</strong></td>
-                          <td style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--contrast);">${groupAvg.toFixed(1)} / 4</td>
+                          <td style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--contrast);">${groupAvg.toFixed(2)} / 4</td>
                           <td style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--primary);">${groupPct.toFixed(1)}%</td>
                         </tr>
                       </tbody>

@@ -1063,4 +1063,46 @@ dialog article {
   }
 }
 
+/* Live Evaluation Scoring Preview & Summary Card */
+.aspecto-score-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
+  width: fit-content;
+}
+
+[data-theme="dark"] .aspecto-score-preview {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+#evaluationLiveScoreCard {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#evaluationLiveScoreCard:hover {
+  border-color: var(--primary);
+}
+
+/* Resaltado visual para aspectos sin responder cuando la evaluación está incompleta */
+.aspecto-row.aspecto-incompleto {
+  border: 1.5px solid #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.04) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+  animation: pulseIncompleto 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseIncompleto {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.35);
+  }
+}
+
 

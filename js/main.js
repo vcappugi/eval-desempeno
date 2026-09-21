@@ -5,7 +5,7 @@ import { initSupabase } from './supabase.js';
 import { closeModal } from './utils.js';
 import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js';
 import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage } from './evaluations.js?v=2.1.9';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage } from './evaluations.js';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -27,8 +27,11 @@ import {
   openFechaEvalModal,
   saveFechaEval,
   toggleFechaEvalPublicado,
-  handleTrabRolChange
-} from './admin.js?v=2.1.9';
+  handleTrabRolChange,
+  handleAspectosFilterTipoChange,
+  handleAspectosFilterClaseChange,
+  resetAspectosFilters
+} from './admin.js';
 import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange, filterWorkerChartByPeriod } from './reports.js';
 
 // Inicialización de la aplicación al cargar el DOM
@@ -86,6 +89,9 @@ window.editAspecto = editAspecto;
 window.deleteAspecto = deleteAspecto;
 window.openAspectoModal = openAspectoModal;
 window.saveAspecto = saveAspecto;
+window.handleAspectosFilterTipoChange = handleAspectosFilterTipoChange;
+window.handleAspectosFilterClaseChange = handleAspectosFilterClaseChange;
+window.resetAspectosFilters = resetAspectosFilters;
 
 // Cierre de Evaluaciones
 window.toggleEvaluationStatus = toggleEvaluationStatus;

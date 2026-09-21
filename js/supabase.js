@@ -52,7 +52,7 @@ export async function loadCaches() {
     // Unir con competencias (clase) en memoria para evitar FK físicas en BD
     state.aspectsCache.forEach(a => {
       const parentClass = state.classesCache.find(c => c.id === a.clase_id);
-      a.clase = parentClass ? { titulo: parentClass.titulo } : null;
+      a.clase = parentClass ? { titulo: parentClass.titulo, tipo: parentClass.tipo, id: parentClass.id } : null;
     });
     
     // 4. Evaluaciones (cargar todas las páginas de 1000 registros para tener el histórico completo)

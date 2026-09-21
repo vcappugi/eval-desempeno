@@ -268,10 +268,10 @@ export function renderEvaluationFormQuestions(trabajadorTipo) {
   }
 
   const escalaOptions = [
-    { valor: 1, label: 'Nunca', pts: '(0 Pts)' },
-    { valor: 2, label: 'Casi Nunca', pts: '(1 Pts)' },
-    { valor: 3, label: 'Frecuentemente', pts: '(2 Pts)' },
-    { valor: 4, label: 'Siempre', pts: '(3 Pts)' }
+    { valor: 1, label: 'Nunca' },
+    { valor: 2, label: 'Casi Nunca' },
+    { valor: 3, label: 'Frecuentemente' },
+    { valor: 4, label: 'Siempre' }
   ];
   
   // Agrupar aspectos por competencia (clase_id) filtradas por tipo del trabajador
@@ -297,11 +297,10 @@ export function renderEvaluationFormQuestions(trabajadorTipo) {
           answerFieldHTML = `
             <div class="rango-container" data-aspecto-id="${a.id}">
               ${escalaOptions.map(opt => `
-                <div class="rango-option" data-valor="${opt.valor}" id="label-asp-${a.id}-${opt.valor}" onclick="selectRangoOption(${a.id}, ${opt.valor})" title="${opt.valor}. ${opt.label} ${opt.pts}">
+                <div class="rango-option" data-valor="${opt.valor}" id="label-asp-${a.id}-${opt.valor}" onclick="selectRangoOption(${a.id}, ${opt.valor})" title="${opt.valor}. ${opt.label}">
                   <input type="radio" name="aspecto_${a.id}" value="${opt.valor}" style="display: none;">
                   <span class="rango-num">${opt.valor}</span>
                   <span class="rango-title">${opt.label}</span>
-                  <span class="rango-pts">${opt.pts}</span>
                 </div>
               `).join('')}
             </div>
@@ -322,17 +321,12 @@ export function renderEvaluationFormQuestions(trabajadorTipo) {
             <textarea name="aspecto_${a.id}" rows="2" placeholder="Escriba comentarios u observaciones (opcional)..." style="margin-top: 0.5rem;"></textarea>
           `;
         }
-        
-        const ponderacionBadge = (a.ponderacion !== null && a.ponderacion !== undefined && a.ponderacion !== '')
-          ? `<span style="font-size: 0.75rem; font-weight: 600; color: var(--muted-color); margin-left: 0.5rem;">[Pond: ${a.ponderacion}%]</span>`
-          : '';
 
         claseHTML += `
           <div class="aspecto-row" data-aspecto-id="${a.id}" data-clase-id="${c.id}" data-tipo="${a.tipo}">
             <div class="aspecto-desc">
               <mark style="background-color: var(--primary-focus); color: var(--primary); border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>
               ${a.descripcion}
-              ${ponderacionBadge}
             </div>
             ${answerFieldHTML}
           </div>
@@ -349,32 +343,34 @@ export function renderEvaluationFormQuestions(trabajadorTipo) {
   });
 }
 
-// Lógica de selección de botón de rango 1-4 (con soporte de toggle/deselección)
+// Lógica de selección de botón de rango 1-4 (con soporte de toggle/deselección estricta de una sola opción)
 export function selectRangoOption(aspectoId, valor) {
-  const activeOpt = document.getElementById(`label-asp-${aspectoId}-${valor}`);
-  const radio = activeOpt ? activeOpt.querySelector('input[type="radio"]') : null;
-  
-  // Si ya estaba seleccionada, permitir deseleccionar (queda sin respuesta / -1)
-  if (activeOpt && activeOpt.classList.contains('selected')) {
-    activeOpt.classList.remove('selected');
-    if (radio) radio.checked = false;
+  // Localizar la fila correspondiente al aspecto
+  const aspectoRow = document.querySelector(`.aspecto-row[data-aspecto-id="${aspectoId}"]`);
+  if (!aspectoRow) return;
+
+  const targetOption = aspectoRow.querySelector(`.rango-option[data-valor="${valor}"]`);
+  const targetRadio = targetOption ? targetOption.querySelector('input[type="radio"]') : null;
+  const isCurrentlySelected = targetOption && (targetOption.classList.contains('selected') || (targetRadio && targetRadio.checked));
+
+  // 1. Limpiar SIEMPRE y de forma absoluta todas las opciones de este aspecto
+  const allOptions = aspectoRow.querySelectorAll('.rango-option');
+  allOptions.forEach(opt => {
+    opt.classList.remove('selected');
+    const r = opt.querySelector('input[type="radio"]');
+    if (r) r.checked = false;
+  });
+
+  // 2. Si ya estaba seleccionada la misma opción, queda deseleccionada (toggle a sin respuesta / -1)
+  if (isCurrentlySelected) {
     return;
   }
-  
-  // Deseleccionar todas las opciones del rango
-  for (let i = 1; i <= 4; i++) {
-    const opt = document.getElementById(`label-asp-${aspectoId}-${i}`);
-    if (opt) {
-      opt.classList.remove('selected');
-      const r = opt.querySelector('input[type="radio"]');
-      if (r) r.checked = false;
-    }
-  }
-  
-  // Seleccionar la opción clickeada
-  if (activeOpt) {
-    activeOpt.classList.add('selected');
-    if (radio) radio.checked = true;
+
+  // 3. Activar ÚNICAMENTE la opción seleccionada
+  if (targetOption) {
+    targetOption.classList.add('selected');
+    if (targetRadio) targetRadio.checked = true;
+    aspectoRow.classList.remove('aspecto-incompleto');
   }
 }
 
@@ -428,8 +424,16 @@ export async function checkEvaluationDateUnique() {
     document.getElementById('evalEstadoLabel').value = isClosed ? 'Cerrada (Lectura Única)' : 'Abierta (Modificable)';
     document.getElementById('btnGuardarEvaluacion').disabled = isClosed;
     
-    // Rellenar las respuestas en el formulario
+    // Deduplicar las filas recuperadas por item_evaluacion_id conservando siempre la más reciente (mayor id)
+    const uniqueMap = new Map();
+    evalRows.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     evalRows.forEach(row => {
+      uniqueMap.set(Number(row.item_evaluacion_id), row);
+    });
+    const cleanEvalRows = Array.from(uniqueMap.values());
+    
+    // Rellenar las respuestas en el formulario garantizando una sola opción activa por aspecto
+    cleanEvalRows.forEach(row => {
       try {
         const parsed = safeParseJSON(row.evaluacion);
         const rating = parsed ? parsed.valor : '';
@@ -440,6 +444,14 @@ export async function checkEvaluationDateUnique() {
         if (aspectoRow) {
           const tipo = aspectoRow.getAttribute('data-tipo');
           
+          // Limpiar previamente cualquier selección en esta fila para evitar opciones dobles
+          const allOptions = aspectoRow.querySelectorAll('.rango-option');
+          allOptions.forEach(opt => {
+            opt.classList.remove('selected');
+            const r = opt.querySelector('input[type="radio"]');
+            if (r) r.checked = false;
+          });
+          
           // Si tiene valor "-1" o está vacío, se deja sin respuesta
           if (rating === '-1' || rating === -1 || rating === '' || rating === null || rating === undefined) {
             disableFieldsInRow(aspectoRow, isClosed);
@@ -449,7 +461,7 @@ export async function checkEvaluationDateUnique() {
           if (tipo === 'rango1,4') {
             const valNum = parseInt(rating);
             if (!isNaN(valNum) && valNum >= 1 && valNum <= 4) {
-              const activeOpt = document.getElementById(`label-asp-${aspectoId}-${valNum}`);
+              const activeOpt = aspectoRow.querySelector(`.rango-option[data-valor="${valNum}"]`);
               if (activeOpt) {
                 activeOpt.classList.add('selected');
                 const radio = activeOpt.querySelector('input[type="radio"]');
@@ -486,6 +498,7 @@ export async function checkEvaluationDateUnique() {
     const rows = document.querySelectorAll('.aspecto-row');
     rows.forEach(r => disableFieldsInRow(r, false));
   }
+
 }
 
 export function resetAnswersInForm() {
@@ -497,6 +510,9 @@ export function resetAnswersInForm() {
   
   const rangoLabels = document.querySelectorAll('.rango-option');
   rangoLabels.forEach(l => l.classList.remove('selected'));
+
+  const rows = document.querySelectorAll('.aspecto-row');
+  rows.forEach(r => r.classList.remove('aspecto-incompleto'));
 }
 
 export function disableFieldsInRow(rowElement, disable) {
@@ -536,20 +552,103 @@ export async function saveEvaluation(event) {
     showToast("No se puede guardar una evaluación cerrada.", "error");
     return;
   }
-  
-  // Buscar filas existentes en base de datos para esta combinación (trabajador, fecha)
-  const existingRows = state.evaluationsCache.filter(ev => {
-    if (ev.fecha !== fecha) return false;
-    try {
-      const parsed = safeParseJSON(ev.evaluacion);
-      return parsed && String(parsed.trabajador_id) === String(trabajadorId);
-    } catch(e) {
-      return false;
+
+  // Validar que todas las preguntas del formulario tengan una opción seleccionada (no permitir guardar incompleta)
+  const rows = document.querySelectorAll('.aspecto-row');
+  let firstMissingRow = null;
+  let missingCount = 0;
+
+  rows.forEach(r => {
+    const tipo = r.getAttribute('data-tipo');
+    let hasAnswer = false;
+
+    if (tipo === 'rango1,4') {
+      const checkedRadio = r.querySelector('input[type="radio"]:checked');
+      const selectedOpt = r.querySelector('.rango-option.selected');
+      const val = checkedRadio ? checkedRadio.value : (selectedOpt ? selectedOpt.getAttribute('data-valor') : null);
+      if (val && val !== '-1' && val !== -1 && val !== '') {
+        hasAnswer = true;
+      }
+    } else if (tipo === 'si/no') {
+      const checkedRadio = r.querySelector('input[type="radio"]:checked');
+      if (checkedRadio && checkedRadio.value) hasAnswer = true;
+    } else {
+      const ta = r.querySelector('textarea');
+      if (ta && ta.value.trim().length > 0) hasAnswer = true;
+    }
+
+    if (!hasAnswer) {
+      missingCount++;
+      if (!firstMissingRow) firstMissingRow = r;
+      r.classList.add('aspecto-incompleto');
+    } else {
+      r.classList.remove('aspecto-incompleto');
     }
   });
+
+  if (missingCount > 0) {
+    showToast(`Evaluación incompleta: Debe completar todas las preguntas para poder almacenar (${missingCount} pregunta${missingCount > 1 ? 's' : ''} pendiente${missingCount > 1 ? 's' : ''}).`, "warning");
+    if (firstMissingRow) {
+      firstMissingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
   
+  // Buscar filas existentes en base de datos para esta combinación (trabajador, fecha)
+  let existingRows = [];
+  try {
+    const { data: dbRows, error: dbErr } = await state.supabaseClient
+      .from('evaluacion')
+      .select('id, item_evaluacion_id')
+      .eq('fecha', fecha)
+      .like('evaluacion', `%"trabajador_id":${trabajadorId}%`);
+    if (!dbErr && dbRows && dbRows.length > 0) {
+      existingRows = dbRows;
+    }
+  } catch (e) {
+    console.error("Error consultando filas existentes para guardar:", e);
+  }
+
+  // Si falló la consulta directa a DB, usar la caché local como respaldo
+  if (existingRows.length === 0) {
+    existingRows = state.evaluationsCache.filter(ev => {
+      if (ev.fecha !== fecha) return false;
+      try {
+        const parsed = safeParseJSON(ev.evaluacion);
+        return parsed && String(parsed.trabajador_id) === String(trabajadorId);
+      } catch(e) {
+        return false;
+      }
+    });
+  }
+
+  // Deduplicar filas existentes por item_evaluacion_id (conservando el mayor id)
+  const existingMap = new Map();
+  const dupIdsToDelete = [];
+  existingRows.forEach(r => {
+    const itm = Number(r.item_evaluacion_id);
+    if (existingMap.has(itm)) {
+      const prev = existingMap.get(itm);
+      if (Number(r.id) > Number(prev.id)) {
+        dupIdsToDelete.push(prev.id);
+        existingMap.set(itm, r);
+      } else {
+        dupIdsToDelete.push(r.id);
+      }
+    } else {
+      existingMap.set(itm, r);
+    }
+  });
+
+  if (dupIdsToDelete.length > 0) {
+    try {
+      await state.supabaseClient.from('evaluacion').delete().in('id', dupIdsToDelete);
+    } catch (e) {
+      console.error("Error limpiando duplicados en BD:", e);
+    }
+  }
+
   // Recopilar respuestas del formulario
-  const rows = document.querySelectorAll('.aspecto-row');
   const insertPayloads = [];
   
   rows.forEach(r => {
@@ -576,7 +675,7 @@ export async function saveEvaluation(event) {
     }
     
     // Determinar si ya existía una fila para este aspecto
-    const existingRow = existingRows.find(ev => Number(ev.item_evaluacion_id) === Number(aspectoId));
+    const existingRow = existingMap.get(aspectoId);
     
     const payload = {
       clase_id: claseId,
@@ -590,7 +689,7 @@ export async function saveEvaluation(event) {
     };
     
     if (existingRow && existingRow.id) {
-      payload.id = existingRow.id; // Incluir ID para upsert
+      payload.id = existingRow.id; // Incluir ID para upsert in-place
     }
     
     insertPayloads.push(payload);
