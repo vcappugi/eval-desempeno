@@ -160,7 +160,7 @@ export function renderIndicadoresGenerales() {
 
 let currentChartWorkerId = null;
 
-export async function showWorkerChartModal(workerId) {
+export async function showWorkerChartModal(workerId, initialPeriod = 'ALL') {
   const w = state.workersCache.find(worker => worker.id === workerId);
   if (!w) return;
   
@@ -183,6 +183,7 @@ export async function showWorkerChartModal(workerId) {
 
   // Poblar selector de período de evaluación
   const periodSelect = document.getElementById('chartPeriodFilter');
+  let selectedTarget = 'ALL';
   if (periodSelect) {
     periodSelect.innerHTML = '';
     
@@ -203,12 +204,15 @@ export async function showWorkerChartModal(workerId) {
       periodSelect.appendChild(opt);
     });
     
-    periodSelect.value = 'ALL';
+    if (initialPeriod && distinctDates.includes(initialPeriod)) {
+      selectedTarget = initialPeriod;
+    }
+    periodSelect.value = selectedTarget;
     periodSelect.disabled = distinctDates.length === 0;
   }
   
-  // Renderizar gráfico y resultado general con todos los períodos
-  renderWorkerChartData(workerId, 'ALL');
+  // Renderizar gráfico y resultado general con el período seleccionado
+  renderWorkerChartData(workerId, selectedTarget);
 }
 
 export function filterWorkerChartByPeriod() {

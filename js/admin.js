@@ -799,10 +799,28 @@ export async function deleteAspecto(id) {
 
 // ================= TAB: CIERRE DE EVALUACIONES =================
 
+export function handleCierreSearch(query) {
+  state.cierreSearchQuery = (query || '').trim();
+  renderCierreEvaluaciones();
+}
+
+export function resetCierreSearch() {
+  state.cierreSearchQuery = '';
+  const searchInput = document.getElementById('searchCierreTrabajador');
+  if (searchInput) searchInput.value = '';
+  renderCierreEvaluaciones();
+}
+
 export function renderCierreEvaluaciones() {
   const tbody = document.getElementById('cierreEvaluacionesTableBody');
   if (!tbody) return;
   
+  // Sincronizar input de búsqueda con el estado
+  const searchInput = document.getElementById('searchCierreTrabajador');
+  if (searchInput && searchInput.value !== (state.cierreSearchQuery || '')) {
+    searchInput.value = state.cierreSearchQuery || '';
+  }
+
   tbody.innerHTML = '';
   
   // Agrupar evaluaciones de la caché por (trabajador_id, fecha)
@@ -838,11 +856,55 @@ export function renderCierreEvaluaciones() {
   
   if (groupsList.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No se han realizado evaluaciones aún.</td></tr>';
+    const countBadge = document.getElementById('cierreCountBadge');
+    if (countBadge) countBadge.textContent = '0 evaluaciones';
+    return;
+  }
+  
+  // Filtrar por término de búsqueda (nombre, cédula, ficha o departamento)
+  let filtered = groupsList;
+  if (state.cierreSearchQuery) {
+    const q = state.cierreSearchQuery.toLowerCase();
+    filtered = groupsList.filter(group => {
+      const worker = state.workersCache.find(w => w.id === group.trabajadorId);
+      if (!worker) return false;
+      const nombre = (worker.nombre || '').toLowerCase();
+      const cedula = (worker.cedula || '').toLowerCase();
+      const ficha = (worker.ficha || '').toLowerCase();
+      const depto = (worker.departamento || '').toLowerCase();
+      return nombre.includes(q) || cedula.includes(q) || ficha.includes(q) || depto.includes(q);
+    });
+  }
+
+  // Actualizar contador
+  const countBadge = document.getElementById('cierreCountBadge');
+  if (countBadge) {
+    if (state.cierreSearchQuery) {
+      countBadge.textContent = `Mostrando ${filtered.length} de ${groupsList.length} evaluaciones`;
+    } else {
+      countBadge.textContent = `Total: ${groupsList.length} evaluaciones`;
+    }
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 2.5rem 1rem;">
+          <div style="color: var(--muted-color); margin-bottom: 0.5rem;">
+            <i class="fa-solid fa-user-slash" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+            No se encontraron evaluaciones para el criterio "<strong>${state.cierreSearchQuery}</strong>".
+          </div>
+          <button class="outline secondary" onclick="resetCierreSearch()" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; margin-top: 0.5rem;">
+            <i class="fa-solid fa-rotate-left"></i> Restablecer Búsqueda
+          </button>
+        </td>
+      </tr>
+    `;
     return;
   }
   
   let html = '';
-  groupsList.forEach((group, index) => {
+  filtered.forEach((group, index) => {
     const worker = state.workersCache.find(w => w.id === group.trabajadorId);
     const workerLabel = worker ? `${worker.nombre} (Ficha: ${worker.ficha || 'N/A'})` : `Desconocido (ID: ${group.trabajadorId})`;
     const statusText = group.estado ? 
@@ -853,14 +915,19 @@ export function renderCierreEvaluaciones() {
       `<button class="outline secondary" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="toggleEvaluationStatus('${group.trabajadorId}', '${group.fecha}', false)">Reabrir</button>` : 
       `<button class="primary" style="padding: 0.25rem 0.5rem; margin-bottom: 0;" onclick="toggleEvaluationStatus('${group.trabajadorId}', '${group.fecha}', true)"><i class="fa-solid fa-lock"></i> Cerrar</button>`;
       
+    const formattedDate = new Date(group.fecha + 'T00:00:00').toLocaleDateString();
+
     html += `
       <tr>
         <td>#${index + 1}</td>
         <td><strong>${workerLabel}</strong></td>
-        <td>${new Date(group.fecha).toLocaleDateString()}</td>
+        <td>${formattedDate}</td>
         <td>${group.aspectos} aspectos evaluados</td>
         <td>${statusText}</td>
         <td style="text-align: right; white-space: nowrap;">
+          <button class="outline" style="padding: 0.25rem 0.55rem; margin-bottom: 0; margin-right: 0.35rem; font-size: 0.85rem;" onclick="showWorkerChartModal(${group.trabajadorId}, '${group.fecha}')" title="Ver Gráfico de Desempeño (${formattedDate})">
+            <i class="fa-solid fa-chart-simple text-primary"></i> Gráfico
+          </button>
           ${toggleButton}
         </td>
       </tr>

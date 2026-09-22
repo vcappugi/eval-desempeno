@@ -14,6 +14,9 @@ export const state = {
   // Filtros de Competencias
   competenciasFilterTipo: '',
   
+  // Filtro de Cierre de Evaluaciones
+  cierreSearchQuery: '',
+  
   // Filtros de Aspectos
   aspectsFilterTipo: '',
   aspectsFilterClaseId: '',

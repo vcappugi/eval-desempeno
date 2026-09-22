@@ -180,6 +180,31 @@
       <h3><i class="fa-solid fa-lock text-primary"></i> Cierre de Evaluaciones Realizadas</h3>
       <p>Monitoree y cierre las evaluaciones realizadas por los supervisores. Una vez cerrada, una evaluación pasa a ser **no editable**.</p>
       
+      <!-- FILTRO DE BUSQUEDA POR TRABAJADOR -->
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1.25rem; background: var(--card-background-color); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="flex: 2 1 280px; min-width: 220px;">
+          <label for="searchCierreTrabajador" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+            <i class="fa-solid fa-user text-primary"></i> Buscar por Trabajador
+          </label>
+          <input 
+            type="search" 
+            id="searchCierreTrabajador" 
+            placeholder="🔍 Nombre, cédula o ficha del evaluado..." 
+            oninput="handleCierreSearch(this.value)" 
+            style="margin-bottom: 0;"
+          >
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center; align-self: flex-end; padding-bottom: 0.1rem;">
+          <button class="outline secondary" onclick="resetCierreSearch()" style="margin-bottom: 0; padding: 0.5rem 0.85rem; white-space: nowrap;" title="Limpiar Búsqueda">
+            <i class="fa-solid fa-rotate-left"></i> Limpiar
+          </button>
+          <span id="cierreCountBadge" class="badge" style="background-color: var(--primary-focus); color: var(--primary); font-size: 0.8rem; border: 1px solid var(--primary); white-space: nowrap;">
+            0 evaluaciones
+          </span>
+        </div>
+      </div>
+      
       <div class="table-wrapper">
         <table>
           <thead>

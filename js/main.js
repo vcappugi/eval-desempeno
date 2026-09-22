@@ -32,7 +32,9 @@ import {
   handleTrabRolChange,
   handleAspectosFilterTipoChange,
   handleAspectosFilterClaseChange,
-  resetAspectosFilters
+  resetAspectosFilters,
+  handleCierreSearch,
+  resetCierreSearch
 } from './admin.js';
 import { showWorkerChartModal, renderReporteSubordinados, printReporteSubordinados, handleReportDeptChange, filterWorkerChartByPeriod } from './reports.js';
 
@@ -108,6 +110,8 @@ window.resetAspectosFilters = resetAspectosFilters;
 
 // Cierre de Evaluaciones
 window.toggleEvaluationStatus = toggleEvaluationStatus;
+window.handleCierreSearch = handleCierreSearch;
+window.resetCierreSearch = resetCierreSearch;
 
 // CRUD Fechas
 window.editFechaEval = editFechaEval;
