@@ -145,24 +145,43 @@ export async function startEvaluation(trabajadorId) {
   // Resetear formulario
   document.getElementById('evaluacionIdInput').value = '';
   
-  // Poblar select de fechas de evaluación
+  // Poblar select de fechas de evaluación (Solo fechas marcadas como publicadas en fecha_eval)
+  const publishedDates = (state.fechaEvalCache || []).filter(fe => Boolean(fe.publicado));
   const selectFecha = document.getElementById('evalFecha');
   if (selectFecha) {
     selectFecha.innerHTML = '';
-    state.fechaEvalCache.forEach(fe => {
+    if (publishedDates.length === 0) {
       const option = document.createElement('option');
-      option.value = fe.fecha;
-      option.textContent = new Date(fe.fecha + 'T00:00:00').toLocaleDateString();
+      option.value = '';
+      option.textContent = 'No hay fechas publicadas';
       selectFecha.appendChild(option);
-    });
+      selectFecha.disabled = true;
+    } else {
+      selectFecha.disabled = false;
+      publishedDates.forEach(fe => {
+        const option = document.createElement('option');
+        option.value = fe.fecha;
+        option.textContent = new Date(fe.fecha + 'T00:00:00').toLocaleDateString();
+        selectFecha.appendChild(option);
+      });
+    }
   }
-  
+
   // Renderizar formulario de competencias y aspectos según el tipo del trabajador
   renderEvaluationFormQuestions(t.tipo);
   
   // Mostrar formulario de evaluación y ocultar lista
   document.getElementById('evaluationFormContainer').style.display = 'block';
   document.getElementById('subordinadosTableBody').closest('.premium-card').style.display = 'none';
+
+  // Si no hay fechas de evaluación publicadas, informar y deshabilitar guardado
+  if (publishedDates.length === 0) {
+    document.getElementById('evalEstadoLabel').value = 'Sin fechas activas';
+    const btnGuardar = document.getElementById('btnGuardarEvaluacion');
+    if (btnGuardar) btnGuardar.disabled = true;
+    showToast("No hay períodos de evaluación publicados actualmente.", "warning");
+    return;
+  }
 
   // Consultar evaluaciones de este trabajador en Supabase para asegurar datos frescos
   try {
@@ -179,27 +198,21 @@ export async function startEvaluation(trabajadorId) {
         else state.evaluationsCache.push(wev);
       });
       
-      // Fechas con evaluaciones para este trabajador
-      const fechasConEvaluacion = [...new Set(workerDbEvals.map(ev => ev.fecha))].sort((a,b) => new Date(b) - new Date(a));
+      // Fechas con evaluaciones para este trabajador que estén publicadas
+      const fechasConEvaluacionPublicadas = [...new Set(workerDbEvals.map(ev => ev.fecha))]
+        .filter(f => publishedDates.some(pd => pd.fecha === f))
+        .sort((a,b) => new Date(b) - new Date(a));
       
-      // Agregar fechas faltantes al select si no existieran
-      if (selectFecha) {
-        fechasConEvaluacion.forEach(f => {
-          if (![...selectFecha.options].some(opt => opt.value === f)) {
-            const opt = document.createElement('option');
-            opt.value = f;
-            opt.textContent = new Date(f + 'T00:00:00').toLocaleDateString();
-            selectFecha.appendChild(opt);
-          }
-        });
-        
-        // Seleccionar por defecto la fecha que tiene evaluación existente
-        if (fechasConEvaluacion.length > 0) {
-          selectFecha.value = fechasConEvaluacion[0];
+      // Seleccionar por defecto la fecha publicada que ya tenga evaluación existente, o la primera publicada
+      if (selectFecha && publishedDates.length > 0) {
+        if (fechasConEvaluacionPublicadas.length > 0) {
+          selectFecha.value = fechasConEvaluacionPublicadas[0];
+        } else {
+          selectFecha.value = publishedDates[0].fecha;
         }
       }
-    } else if (state.fechaEvalCache.length > 0 && selectFecha) {
-      selectFecha.value = state.fechaEvalCache[0].fecha;
+    } else if (publishedDates.length > 0 && selectFecha) {
+      selectFecha.value = publishedDates[0].fecha;
     }
   } catch (err) {
     console.error("Error al sincronizar evaluaciones del trabajador:", err);
@@ -624,6 +637,13 @@ export async function saveEvaluation(event) {
   
   if (estadoLabel.includes('Cerrada')) {
     showToast("No se puede guardar una evaluación cerrada.", "error");
+    return;
+  }
+
+  // Validar que la fecha seleccionada esté publicada
+  const fechaEvalRecord = state.fechaEvalCache.find(fe => fe.fecha === fecha);
+  if (!fechaEvalRecord || !fechaEvalRecord.publicado) {
+    showToast("La fecha seleccionada no se encuentra publicada para evaluación.", "error");
     return;
   }
 
