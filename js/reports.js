@@ -926,10 +926,13 @@ export function renderReporteSubordinados() {
                             }
                           } catch(e) {}
                           
+                          const isRev = isAspectoReverse(aspect);
+                          const revMark = isRev ? '<span class="reverse-item-mark" style="font-size: 0.62rem; padding: 0.05rem 0.25rem; margin-right: 0.35rem;" title="Escala Inversa (Reverso)"><i class="fa-solid fa-arrow-rotate-left"></i> (R)</span>' : '';
+
                           return `
                             <tr>
                               <td style="font-size: 0.85rem;"><strong>${compLabel}</strong></td>
-                              <td style="font-size: 0.85rem; text-align: justify;">${aspectLabel}</td>
+                              <td style="font-size: 0.85rem; text-align: justify;">${revMark}${aspectLabel}</td>
                               <td style="text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--contrast);">${ratingVal}</td>
                               <td style="text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--primary);">${pctLabel}</td>
                             </tr>

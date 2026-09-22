@@ -322,11 +322,15 @@ export function renderEvaluationFormQuestions(trabajadorTipo) {
           `;
         }
 
+        const isRev = isAspectoReverse(a);
+        const reverseMark = isRev ? 
+          `<span class="reverse-item-mark" title="Pregunta con escala inversa (Reverso: 4 = 0 pts, 1 = 100%)"><i class="fa-solid fa-arrow-rotate-left"></i> (R)</span>` : '';
+
         claseHTML += `
           <div class="aspecto-row" data-aspecto-id="${a.id}" data-clase-id="${c.id}" data-tipo="${a.tipo}">
             <div class="aspecto-desc">
               <mark style="background-color: var(--primary-focus); color: var(--primary); border-radius: 4px; font-weight: 700; padding: 0.1rem 0.3rem; margin-right: 0.5rem;">${a.orden}</mark>
-              ${a.descripcion}
+              ${reverseMark}${a.descripcion}
             </div>
             ${answerFieldHTML}
           </div>
