@@ -113,7 +113,8 @@ export function renderIndicadoresGenerales() {
     }
   });
   const promedioGeneral = compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val, 0) / compAvgScores.length : 0;
-  document.getElementById('indPromedioGeneral').textContent = `${promedioGeneral.toFixed(1)} / 4`;
+  const promedioGeneralScoreOn4 = (promedioGeneral / 100) * 4;
+  document.getElementById('indPromedioGeneral').textContent = `${promedioGeneralScoreOn4.toFixed(1)} / 4`;
   
   // 4. Tasa de Participación (% de personal evaluado)
   const pctEvaluados = totalTrabajadores > 0 ? Math.round((evaluadosSet.size / totalTrabajadores) * 100) : 0;
@@ -139,8 +140,8 @@ export function renderIndicadoresGenerales() {
         const cuenta = compCuenta[c.id] || 0;
         const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (cuenta > 0 ? (unweightedSuma / cuenta) : null);
         
-        const pctBarra = promedio !== null ? (promedio / 4) * 100 : 0;
-        const promedioLabel = promedio !== null ? `${promedio.toFixed(1)} / 4` : 'Sin calificaciones';
+        const pctBarra = promedio !== null ? Math.min(100, Math.max(0, promedio)) : 0;
+        const promedioLabel = promedio !== null ? `${((promedio / 100) * 4).toFixed(1)} / 4 (${promedio.toFixed(1)}%)` : 'Sin calificaciones';
         
         compContainer.innerHTML += `
           <div>
@@ -337,7 +338,7 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
     }
   });
   const promedioGeneral = compAvgScores.length > 0 ? compAvgScores.reduce((sum, val) => sum + val, 0) / compAvgScores.length : 0;
-  const porcentajeGeneral = promedioGeneral > 0 ? Math.round((promedioGeneral / 4) * 100) : 0;
+  const porcentajeGeneral = promedioGeneral > 0 ? Math.round(promedioGeneral) : 0;
   
   percentSpan.textContent = `${porcentajeGeneral}%`;
   
@@ -366,7 +367,7 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
   
   const pointsLabel = document.getElementById('chartScorePoints');
   if (pointsLabel) {
-    pointsLabel.textContent = promedioGeneral > 0 ? `${promedioGeneral.toFixed(2)} / 4.0 Pts` : '-';
+    pointsLabel.textContent = promedioGeneral > 0 ? `${((promedioGeneral / 100) * 4).toFixed(2)} / 4.0 Pts` : '-';
   }
   
   if (selectedPeriod === 'ALL') {
@@ -388,13 +389,11 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
     const unweightedSuma = compUnweightedSuma[c.id] || 0;
     const cuenta = compCuenta[c.id] || 0;
     
-    const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (cuenta > 0 ? (unweightedSuma / cuenta) : 0);
-    const finalPromedio = parseFloat(promedio.toFixed(1));
-    
-    // Solo mostrar competencias que tengan datos evaluados para este trabajador
     if (cuenta > 0) {
-      labels.push(c.titulo);
-      scores.push(finalPromedio);
+      const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
+      const scoreOn4 = parseFloat(((promedio / 100) * 4).toFixed(2));
+      labels.push([c.titulo, `${scoreOn4.toFixed(2)} / 4 (${promedio.toFixed(1)}%)`]);
+      scores.push(scoreOn4);
     }
   });
   
@@ -404,7 +403,7 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
     return;
   }
   
-  // Crear gráfico Radar de Chart.js
+  // Crear gráfico de Chart.js (radar si hay 3 o más competencias, barra si hay 1 o 2)
   const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
   const textColor = isDarkMode ? '#e2e8f0' : '#334155';
   const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
@@ -413,9 +412,10 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
     ? 'Promedio General de Competencias'
     : `Evaluación del ${new Date(selectedPeriod + 'T00:00:00').toLocaleDateString()}`;
 
-  // Utiliza el constructor global de Chart
-  state.currentChartInstance = new Chart(canvas.getContext('2d'), {
-    type: 'radar',
+  const chartType = scores.length >= 3 ? 'radar' : 'bar';
+
+  const chartConfig = {
+    type: chartType,
     data: {
       labels: labels,
       datasets: [{
@@ -436,34 +436,71 @@ export function renderWorkerChartData(workerId, selectedPeriod = 'ALL') {
       plugins: {
         legend: {
           display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const val = context.raw || 0;
+              const pct = ((val / 4) * 100).toFixed(1);
+              return ` ${datasetLabel}: ${val.toFixed(2)} / 4.0 (${pct}%)`;
+            }
+          }
         }
       },
-      scales: {
-        r: {
-          angleLines: {
-            color: gridColor
-          },
-          grid: {
-            color: gridColor
-          },
-          pointLabels: {
-            color: textColor,
-            font: {
-              size: 11,
-              weight: 'bold'
-            }
-          },
-          ticks: {
-            color: textColor,
-            backdropColor: 'transparent',
-            stepSize: 1
-          },
-          min: 0,
-          max: 4
-        }
-      }
+      scales: {}
     }
-  });
+  };
+
+  if (chartType === 'radar') {
+    chartConfig.options.scales = {
+      r: {
+        angleLines: {
+          color: gridColor
+        },
+        grid: {
+          color: gridColor
+        },
+        pointLabels: {
+          color: textColor,
+          font: {
+            size: 11,
+            weight: 'bold'
+          }
+        },
+        ticks: {
+          color: textColor,
+          backdropColor: 'transparent',
+          stepSize: 1
+        },
+        min: 0,
+        max: 4
+      }
+    };
+  } else {
+    chartConfig.options.scales = {
+      y: {
+        min: 0,
+        max: 4,
+        ticks: { color: textColor, stepSize: 1 },
+        grid: { color: gridColor }
+      },
+      x: {
+        ticks: { color: textColor, font: { size: 10, weight: 'bold' } },
+        grid: { display: false }
+      }
+    };
+  }
+
+  // Destruir instancia previa en canvas si existe
+  if (typeof Chart !== 'undefined' && Chart.getChart) {
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) {
+      existingChart.destroy();
+    }
+  }
+
+  // Utiliza el constructor global de Chart
+  state.currentChartInstance = new Chart(canvas.getContext('2d'), chartConfig);
 }
 
 // ================= INFORME INDIVIDUAL DE SUBORDINADOS =================
@@ -703,18 +740,18 @@ export function renderReporteSubordinados() {
     });
     
     const workerAvg = compScores.length > 0 ? compScores.reduce((sum, val) => sum + val, 0) / compScores.length : null;
-    const promedioGeneral = workerAvg !== null ? workerAvg.toFixed(1) : 'N/A';
+    const workerScoreOn4 = workerAvg !== null ? (workerAvg / 100) * 4 : null;
+    const promedioGeneral = workerScoreOn4 !== null ? workerScoreOn4.toFixed(1) : 'N/A';
     
     let nivelDesempeno = 'Sin Evaluaciones';
-    if (promedioGeneral !== 'N/A') {
-      const avgNum = parseFloat(promedioGeneral);
-      if (avgNum >= 3.6) nivelDesempeno = 'Excelente (Sobresaliente)';
-      else if (avgNum >= 3.0) nivelDesempeno = 'Bueno (Cumple)';
-      else if (avgNum >= 2.2) nivelDesempeno = 'Regular (Tutoría)';
+    if (workerAvg !== null) {
+      if (workerAvg >= 90) nivelDesempeno = 'Excelente (Sobresaliente)';
+      else if (workerAvg >= 75) nivelDesempeno = 'Bueno (Cumple)';
+      else if (workerAvg >= 55) nivelDesempeno = 'Regular (Tutoría)';
       else nivelDesempeno = 'Deficiente (Bajo)';
       
       // Promediar los promedios ponderados de cada subordinado para el equipo
-      totalTeamScore += avgNum;
+      totalTeamScore += workerScoreOn4;
       totalTeamCount++;
     }
     
@@ -791,7 +828,7 @@ export function renderReporteSubordinados() {
                     const unweightedSuma = subCompUnweightedSuma[c.id] || 0;
                     const cuenta = subCompCuenta[c.id] || 0;
                     const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (cuenta > 0 ? (unweightedSuma / cuenta) : null);
-                    const compPct = promedio !== null ? `${((promedio / 4) * 100).toFixed(1)}%` : '-';
+                    const compPct = promedio !== null ? `${promedio.toFixed(1)}%` : '-';
                     return `
                       <tr>
                         <td><strong>${c.titulo}</strong></td>
@@ -872,7 +909,8 @@ export function renderReporteSubordinados() {
               });
               
               const groupAvg = groupCompScores.length > 0 ? groupCompScores.reduce((sum, val) => sum + val, 0) / groupCompScores.length : 0;
-              const groupPct = groupAvg > 0 ? (groupAvg / 4) * 100 : 0;
+              const groupPct = groupAvg;
+              const groupScoreOn4 = (groupAvg / 100) * 4;
               
               return `
                 <div class="evaluation-date-block">
@@ -921,7 +959,7 @@ export function renderReporteSubordinados() {
                                 ratingVal = escalaMap[valNum] || val;
                                 const weight = aspect.ponderacion !== null && aspect.ponderacion !== undefined ? parseFloat(aspect.ponderacion) : 0;
                                 if (!isNaN(valNum) && valNum >= 0) {
-                                  const puntos = parsed.puntos !== undefined ? Number(parsed.puntos) : calculateItemScore(aspect, valNum);
+                                  const puntos = calculateItemScore(aspect, valNum);
                                   pctLabel = `${puntos.toFixed(2)} pts (de ${weight}%)`;
                                 }
                               } else {
@@ -944,7 +982,7 @@ export function renderReporteSubordinados() {
                         }).join('')}
                         <tr style="background-color: rgba(21, 128, 61, 0.05); font-weight: bold; border-top: 2px solid var(--border-color);">
                           <td colspan="2" style="font-size: 0.85rem; color: var(--primary);"><strong>Promedio Final de la Evaluación</strong></td>
-                          <td style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--contrast);">${groupAvg.toFixed(2)} / 4</td>
+                          <td style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--contrast);">${groupScoreOn4.toFixed(2)} / 4</td>
                           <td style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--primary);">${groupPct.toFixed(1)}%</td>
                         </tr>
                       </tbody>
@@ -1032,11 +1070,11 @@ export function renderReporteSubordinados() {
               const prevSuma = teamCompSuma[c.id] || 0;
               const prevCuenta = teamCompCuenta[c.id] || 0;
               const promedio = prevCuenta > 0 ? (prevSuma / prevCuenta).toFixed(1) : null;
-              const pctBarra = promedio ? (parseFloat(promedio) / 4) * 100 : 0;
-              const promedioLabel = promedio ? `${((parseFloat(promedio) / 4) * 100).toFixed(1)}%` : 'Sin datos';
+              const pctBarra = promedio ? Math.min(100, Math.max(0, parseFloat(promedio))) : 0;
+              const promedioLabel = promedio ? `${parseFloat(promedio).toFixed(1)}%` : 'Sin datos';
               return `
                 <div>
-                  <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.2/rem;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.25rem;">
                     <span style="color: var(--contrast);">${c.titulo}</span>
                     <span style="color: var(--primary); font-weight: 600;">${promedioLabel}</span>
                   </div>
@@ -1115,12 +1153,15 @@ export function renderReporteSubordinados() {
             subCompCuenta[claseId] = 0;
           }
           
+          const isRev = isAspectoReverse(aspecto);
+          const effectiveVal = getItemMultiplier(valor, isRev);
+          
           if (weight > 0) {
-            subCompWeightedSuma[claseId] += valor * weight;
+            subCompWeightedSuma[claseId] += effectiveVal * weight;
             subCompWeightSum[claseId] += weight;
           }
           
-          subCompUnweightedSuma[claseId] += valor;
+          subCompUnweightedSuma[claseId] += effectiveVal;
           subCompCuenta[claseId]++;
         }
       } catch(e) {}
@@ -1136,9 +1177,10 @@ export function renderReporteSubordinados() {
       const cuenta = subCompCuenta[c.id] || 0;
       
       if (cuenta > 0) {
-        labels.push(c.titulo);
         const promedio = weightSum > 0 ? (weightedSuma / weightSum) : (unweightedSuma / cuenta);
-        scores.push(parseFloat(promedio.toFixed(1)));
+        const scoreOn4 = parseFloat(((promedio / 100) * 4).toFixed(2));
+        labels.push([c.titulo, `${scoreOn4.toFixed(1)} / 4 (${promedio.toFixed(0)}%)`]);
+        scores.push(scoreOn4);
       }
     });
     
@@ -1146,6 +1188,13 @@ export function renderReporteSubordinados() {
     
     const canvas = document.getElementById(`repChart_${s.id}`);
     if (!canvas) return;
+    
+    if (typeof Chart !== 'undefined' && Chart.getChart) {
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        existingChart.destroy();
+      }
+    }
     
     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
     const textColor = isDarkMode ? '#e2e8f0' : '#334155';
@@ -1170,7 +1219,16 @@ export function renderReporteSubordinados() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const val = context.raw || 0;
+                const pct = ((val / 4) * 100).toFixed(1);
+                return ` Puntuación: ${val.toFixed(2)} / 4.0 (${pct}%)`;
+              }
+            }
+          }
         },
         scales: {}
       }

@@ -5,7 +5,7 @@ import { initSupabase } from './supabase.js';
 import { closeModal } from './utils.js';
 import { checkSession, handleLogin, handleLogout, openPasswordModal, saveNewPassword } from './auth.js';
 import { initTheme, toggleTheme, toggleSidebar, switchView, switchAdminTab } from './views.js';
-import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, isAspectoReverse, getItemMultiplier, calculateItemScore } from './evaluations.js';
+import { startEvaluation, closeEvaluationForm, selectRangoOption, checkEvaluationDateUnique, saveEvaluation, handleEvalWorkerSearch, changeEvalsPage, isAspectoReverse, getItemMultiplier, calculateItemScore, getItemPercentage } from './evaluations.js';
 import {
   editTrabajador,
   deleteTrabajador,
@@ -79,6 +79,7 @@ window.saveEvaluation = saveEvaluation;
 window.handleEvalWorkerSearch = handleEvalWorkerSearch;
 window.changeEvalsPage = changeEvalsPage;
 window.isAspectoReverse = isAspectoReverse;
+window.getItemPercentage = getItemPercentage;
 window.getItemMultiplier = getItemMultiplier;
 window.calculateItemScore = calculateItemScore;
 

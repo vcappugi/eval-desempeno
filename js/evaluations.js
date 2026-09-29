@@ -568,54 +568,73 @@ export function isAspectoReverse(aspecto) {
 }
 
 /**
- * Calcula el factor multiplicador según la opción seleccionada y si el item es reverso
- * - Si NO es reverso:
- *     opción 1 -> Multiplicador 0
- *     opción 2 -> Multiplicador 2
- *     opción 3 -> Multiplicador 3
- *     opción 4 -> Multiplicador 4
- * - Si ES reverso (campo reverse en true):
- *     opción 1 -> Multiplicador 4
- *     opción 2 -> Multiplicador 3
- *     opción 3 -> Multiplicador 2
- *     opción 4 -> Multiplicador 0
+ * Obtiene el porcentaje o valor de una opción según la regla de evaluación:
+ * - Si NO es reversa:
+ *     Opción 1 (cuyo valor es 0) -> 0% (devuelve 0)
+ *     Opción 2 (cuyo valor es 1) -> 33.33%
+ *     Opción 3 (cuyo valor es 2) -> 66.66%
+ *     Opción 4 (cuyo valor es 3) -> 100%
+ * - Si ES reversa (inversamente):
+ *     Opción 1 (cuyo valor es 0) -> 100%
+ *     Opción 2 (cuyo valor es 1) -> 66.66%
+ *     Opción 3 (cuyo valor es 2) -> 33.33%
+ *     Opción 4 (cuyo valor es 3) -> 0% (devuelve 0)
  * 
- * @param {number|string} valor - Opción elegida (1, 2, 3, 4)
+ * @param {number|string} valor - Opción elegida (1, 2, 3, 4) o valor base (0, 1, 2, 3)
  * @param {boolean} isReverse - Si la pregunta está marcada como reversa
- * @returns {number} Multiplicador (0, 2, 3 o 4)
+ * @returns {number} Valor porcentual (0, 33.33, 66.66 o 100)
  */
-export function getItemMultiplier(valor, isReverse = false) {
+export function getItemPercentage(valor, isReverse = false) {
   const valNum = parseInt(valor, 10);
-  if (isNaN(valNum) || valNum < 1 || valNum > 4) return 0;
+  if (isNaN(valNum) || valNum < 0 || valNum > 4) return 0;
+  
+  // Normalizar opción a 1..4 (si pasan valor base 0, corresponde a Opción 1 cuyo valor es 0)
+  const opcion = valNum === 0 ? 1 : valNum;
   
   if (!isReverse) {
-    if (valNum === 1) return 0;
-    return valNum; // 2 -> 2, 3 -> 3, 4 -> 4
+    if (opcion === 1) return 0;
+    if (opcion === 2) return 33.33;
+    if (opcion === 3) return 66.66;
+    if (opcion === 4) return 100;
   } else {
-    if (valNum === 4) return 0;
-    if (valNum === 3) return 2;
-    if (valNum === 2) return 3;
-    if (valNum === 1) return 4;
-    return 0;
+    if (opcion === 1) return 100;
+    if (opcion === 2) return 66.66;
+    if (opcion === 3) return 33.33;
+    if (opcion === 4) return 0;
   }
+  return 0;
+}
+
+/**
+ * Calcula el valor o porcentaje según la opción seleccionada y si el item es reverso
+ * Alias / wrapper de getItemPercentage para retrocompatibilidad.
+ * 
+ * @param {number|string} valor - Opción elegida (1, 2, 3, 4) o valor base (0, 1, 2, 3)
+ * @param {boolean} isReverse - Si la pregunta está marcada como reversa
+ * @returns {number} Valor porcentual (0, 33.33, 66.66 o 100)
+ */
+export function getItemMultiplier(valor, isReverse = false) {
+  return getItemPercentage(valor, isReverse);
 }
 
 /**
  * Calcula los puntos de un item según la ponderación, la opción seleccionada y la regla de reversión
- * Fórmula: (ponderacion / 4) * multiplicador
+ * Fórmula: (ponderacion * porcentaje) / 100
  * 
  * @param {Object} aspecto - Aspecto de evaluación (item_evaluacion)
  * @param {number|string} valor - Opción elegida (1, 2, 3, 4)
- * @returns {number} Puntos calculados
+ * @returns {number} Puntos calculados (o porcentaje si no tiene ponderación asignada)
  */
 export function calculateItemScore(aspecto, valor) {
   if (!aspecto) return 0;
-  const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : 0;
-  if (isNaN(weight) || weight <= 0) return 0;
-  
   const isRev = isAspectoReverse(aspecto);
-  const multiplicador = getItemMultiplier(valor, isRev);
-  return (weight / 4) * multiplicador;
+  const percentage = getItemPercentage(valor, isRev);
+  const weight = aspecto.ponderacion !== null && aspecto.ponderacion !== undefined ? parseFloat(aspecto.ponderacion) : null;
+  
+  if (weight !== null && !isNaN(weight) && weight > 0) {
+    return (weight * percentage) / 100;
+  }
+  return percentage;
 }
 
 // Guardar/Actualizar Evaluación
