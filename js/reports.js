@@ -805,7 +805,7 @@ export function renderReporteSubordinados() {
             </div>
             <div class="kpi-card">
               <h5>Desempeño</h5>
-              <h3 style="white-space: nowrap;">${workerAvg !== null ? `${((workerAvg / 4) * 100).toFixed(1)}%` : '-'}</h3>
+              <h3 style="white-space: nowrap;">${workerAvg !== null ? `${workerAvg.toFixed(1)}%` : '-'}</h3>
             </div>
           </div>
         </div>
